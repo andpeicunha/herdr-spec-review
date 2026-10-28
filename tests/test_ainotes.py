@@ -8,11 +8,14 @@ from specreview.ainotes import (
     add_note_to_file,
     append_note,
     body_text,
+    delete_note_in_file,
     locate_note,
     next_note_id,
     parse_notes,
     pending_notes,
     remove_note,
+    replace_comment,
+    update_note_in_file,
 )
 
 DOC = "# Design\n\nThe system must validate the token.\nSecond line.\n"
@@ -92,6 +95,57 @@ class AiNotesTests(unittest.TestCase):
             self.assertEqual((first.note_id, second.note_id), ("NOTE-001", "NOTE-002"))
             self.assertEqual(body_text(text), DOC)
             self.assertEqual([n.human_comment for n in pending_notes(text)], ["Q1", "Q2"])
+            self.assertEqual(os.listdir(folder), ["design.md"])
+
+    def test_replace_comment_changes_only_the_human_comment(self):
+        updated = replace_comment(VSCODE_FILE, "NOTE-003", "New text.\nSecond line.")
+        before, after = parse_notes(VSCODE_FILE)[0], parse_notes(updated)[0]
+
+        self.assertEqual(after.human_comment, "New text.\nSecond line.")
+        self.assertEqual(
+            (after.note_id, after.status, after.start_line, after.end_line, after.selected_text,
+             after.expected_action, after.created_at),
+            (before.note_id, before.status, before.start_line, before.end_line, before.selected_text,
+             before.expected_action, before.created_at),
+        )
+        self.assertEqual(body_text(updated), DOC)
+        self.assertEqual(updated.count("Human Comment:"), 1)
+
+    def test_replace_comment_touches_only_the_target_note(self):
+        text = append_note(VSCODE_FILE, note("NOTE-004", comment="Keep me"))
+        updated = replace_comment(text, "NOTE-004", "Changed")
+
+        self.assertEqual(
+            [n.human_comment for n in parse_notes(updated)],
+            ["Also support B2B tenants.\nAnd SSO.", "Changed"],
+        )
+
+    def test_replace_comment_refuses_missing_resolved_or_body_headings(self):
+        self.assertIsNone(replace_comment(VSCODE_FILE, "NOTE-009", "x"))
+        self.assertIsNone(replace_comment(DOC, "NOTE-001", "x"))
+        resolved = VSCODE_FILE.replace("Status: pending", "Status: resolved")
+        self.assertIsNone(replace_comment(resolved, "NOTE-003", "x"))
+        fake = DOC + "\n## NOTE-003\n\nStatus: pending\n\nHuman Comment:\n\nin body\n"
+        self.assertIsNone(replace_comment(fake, "NOTE-003", "x"))
+
+    def test_update_and_delete_note_in_file(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "design.md")
+            with open(path, "w", encoding="utf-8") as out:
+                out.write(DOC)
+            first = add_note_to_file(path, 3, 3, "The system must validate the token.", "Q1")
+            second = add_note_to_file(path, 4, 4, "Second line.", "Q2")
+
+            self.assertTrue(update_note_in_file(path, first.note_id, "Q1 edited"))
+            self.assertFalse(update_note_in_file(path, "NOTE-099", "x"))
+            with open(path, encoding="utf-8") as source:
+                self.assertEqual([n.human_comment for n in pending_notes(source.read())], ["Q1 edited", "Q2"])
+
+            self.assertTrue(delete_note_in_file(path, first.note_id))
+            self.assertFalse(delete_note_in_file(path, first.note_id))
+            self.assertTrue(delete_note_in_file(path, second.note_id))
+            with open(path, encoding="utf-8") as source:
+                self.assertEqual(source.read(), DOC)
             self.assertEqual(os.listdir(folder), ["design.md"])
 
     def test_locate_note_reanchors_after_lines_move(self):

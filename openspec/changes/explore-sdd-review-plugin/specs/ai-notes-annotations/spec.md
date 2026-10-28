@@ -35,6 +35,50 @@ leitor fechar, preservando todo o conteúdo do arquivo fora da seção
 - **WHEN** a pane do plugin fecha antes do fluxo de fechamento normal
 - **THEN** as 2 notas continuam no arquivo
 
+### Requirement: Editar e apagar notas pendentes no leitor
+
+O leitor MUST permitir editar uma nota pendente salva: `c` sempre cria uma nota
+nova e `Shift+C` abre a nota do bloco atual com o texto preenchido. Salvar com
+`Ctrl+S` MUST trocar só o campo `Human Comment` da mesma nota, preservando
+`Status`, `Lines`, `Selected Text` e `Created At`. Salvar uma nota em edição com
+o texto vazio MUST apagar a nota, sem diálogo de confirmação. A caixa de nota
+MUST aceitar `Ctrl+U` para limpar a linha atual.
+
+#### Scenario: Editar uma nota salva
+
+- **GIVEN** o bloco atual tem `NOTE-001` pendente com o comentário "Qual token?"
+- **WHEN** o usuário pressiona `Shift+C`, troca o texto por "Qual token e qual escopo?" e salva com `Ctrl+S`
+- **THEN** o arquivo mantém `NOTE-001` com o novo `Human Comment`
+- **AND** os demais campos da nota ficam iguais
+- **AND** a nota continua legível pela extensão `ai-notes-md`
+
+#### Scenario: Bloco com várias notas
+
+- **GIVEN** o bloco atual tem `NOTE-001` e `NOTE-002`
+- **WHEN** o usuário pressiona `Shift+C`
+- **THEN** o leitor mostra uma lista numerada com as duas notas
+- **AND** o número escolhido abre essa nota para edição
+
+#### Scenario: Apagar uma nota
+
+- **GIVEN** o usuário abriu `NOTE-001` com `Shift+C`
+- **WHEN** ele apaga todo o texto (por exemplo com `Ctrl+U`) e salva com `Ctrl+S`
+- **THEN** `NOTE-001` é removida do arquivo
+- **AND** se não restar nota pendente, a seção `# AI Notes` inteira é removida
+
+#### Scenario: Nota que sumiu do arquivo
+
+- **GIVEN** o agente já resolveu e apagou `NOTE-001` enquanto o leitor estava aberto
+- **WHEN** o usuário salva a edição de `NOTE-001`
+- **THEN** o leitor avisa que a nota não está mais no arquivo
+- **AND** nada é gravado
+
+#### Scenario: Bloco sem nota
+
+- **GIVEN** o bloco atual não tem nota salva
+- **WHEN** o usuário pressiona `Shift+C`
+- **THEN** a linha de status avisa que não há nota neste bloco e sugere `c`
+
 ### Requirement: Âncora da nota
 
 Cada nota MUST registrar as linhas reais do arquivo (`Lines: início-fim`) e o

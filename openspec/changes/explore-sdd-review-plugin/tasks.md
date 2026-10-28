@@ -33,6 +33,7 @@
 - [ ] 5.3 `c` + `Ctrl+S` grava a nota no arquivo com as linhas reais
 - [ ] 5.4 Navegação por requirement/scenario e por seção `##`
 - [ ] 5.5 Detectar mudança do arquivo no disco e oferecer recarregar
+- [x] 5.7 Editar (`Shift+C`) e apagar notas pendentes no leitor, e `Ctrl+U` na caixa de nota
 - [x] 5.6 Zoom simulado (`+`/`-`/`0`, níveis -2 a +3, tabelas na largura toda, nível salvo)
 
 ## 6. Handoff e limpeza

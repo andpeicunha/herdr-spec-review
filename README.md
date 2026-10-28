@@ -11,7 +11,8 @@ changes to the spec.
 1. Open the plugin (Herdr action) or ask your agent to open an artifact (MCP).
 2. Pick the repository, the change, and the artifact (`proposal.md`,
    `design.md`, `specs/**/spec.md`, `tasks.md`).
-3. Read it block by block and press `c` on any block to write a note.
+3. Read it block by block and press `c` on any block to write a note. Press `C`
+   to edit a saved note; erase its text and save to delete it.
    `Ctrl+S` saves the note **into the Markdown file**.
 4. Close with `q`. If you saved notes, confirm and the agent in your session
    gets a short message pointing to the file.
@@ -80,8 +81,10 @@ Reader:
 | `+` / `-` | Zoom in / out (see below) |
 | `0` | Reset the zoom |
 | `n` / `N` | Next / previous heading |
-| `c` | Write an AI Note on the current block |
-| `Ctrl+S` | Save the note into the file |
+| `c` | Add a new AI Note on the current block |
+| `C` | Edit a saved note on the current block (press `1`-`9` to choose when there are several) |
+| `Ctrl+S` | Save the note into the file (on an edited note, empty text deletes it) |
+| `Ctrl+U` | Clear the current line in the note box |
 | `R` | Reload after the file changed on disk |
 | `q` / `Esc` | Close (asks before sending new notes to the agent) |
 

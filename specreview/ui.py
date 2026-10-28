@@ -7,7 +7,7 @@ import os
 import termios
 import traceback
 
-from .ainotes import add_note_to_file
+from .ainotes import Note, add_note_to_file, delete_note_in_file, update_note_in_file
 from .discovery import (
     candidate_repos,
     change_for_artifact,
@@ -48,6 +48,7 @@ _EDITOR_KEYS = {
     "\b": TextBuffer.backspace,
     "\x7f": TextBuffer.backspace,
     curses.KEY_BACKSPACE: TextBuffer.backspace,
+    "\x15": TextBuffer.clear_line,  # Ctrl+U
     curses.KEY_LEFT: TextBuffer.move_left,
     curses.KEY_RIGHT: TextBuffer.move_right,
     curses.KEY_UP: TextBuffer.move_up,
@@ -347,7 +348,7 @@ class App:
 
     def handoff(self, screen: curses.window, path: str, saved: int) -> None:
         rel = os.path.relpath(path, repo_root(os.path.dirname(path)) or os.path.dirname(path))
-        lines = [f"Send {saved} new note(s) to the agent? (y/n)", rel]
+        lines = [f"Send {saved} new or edited note(s) to the agent? (y/n)", rel]
         if not self.confirm(screen, "Send notes to the agent", lines):
             self.status = "Notes kept in the file; nothing sent"
             return
@@ -385,6 +386,33 @@ class App:
             if key in ("n", "N", "\x1b", "q"):
                 return False
 
+    def choose_modal(self, screen: curses.window, title: str, items: list[str]) -> int | None:
+        """Small numbered list: press 1-9 to choose an item, Esc to cancel."""
+        items = items[:9]
+        height, width = screen.getmaxyx()
+        modal_width = max(44, min(width - 4, max(len(item) for item in items) + 10))
+        modal_height = len(items) + 5
+        modal = curses.newwin(
+            modal_height, modal_width, max(0, (height - modal_height) // 2), max(0, (width - modal_width) // 2)
+        )
+        modal.keypad(True)
+        while True:
+            modal.erase()
+            _draw_heavy_box(modal, self.border_attr())
+            _safe_addnstr(modal, 0, 2, f" {title} ", modal_width - 4, self.border_attr())
+            for offset, item in enumerate(items):
+                _safe_addnstr(modal, 2 + offset, 3, f"{offset + 1}. {item}", modal_width - 6)
+            _safe_addnstr(
+                modal, modal_height - 2, 3, "[ 1-9: choose ]    [ Esc: cancel ]", modal_width - 6,
+                self.style("comment", curses.A_BOLD),
+            )
+            modal.refresh()
+            key = modal.get_wch()
+            if isinstance(key, str) and key.isdigit() and 1 <= int(key) <= len(items):
+                return int(key) - 1
+            if key in ("\x1b", "q"):
+                return None
+
     def run(self, screen: curses.window) -> None:
         curses.curs_set(0)
         screen.keypad(True)
@@ -414,7 +442,10 @@ class Reader:
         self.cursor = 0
         self.editor: TextBuffer | None = None
         self.edit_top = 0
-        self.saved = 0
+        # Note being edited (None while writing a new one) and the ids created or
+        # edited in this reading, which decide whether to offer sending them.
+        self.editing: Note | None = None
+        self.touched: set[str] = set()
         self.changed_on_disk = False
         self.display_rows: list[tuple[str, int, str]] = []
         self.visible_rows = 1
@@ -436,6 +467,60 @@ class Reader:
                 self.app.status = "File changed on disk · R to reload"
         except OSError:
             pass
+
+    def touched_pending(self) -> int:
+        """Notes created or edited in this reading that are still pending in the file."""
+        try:
+            current = {note.note_id for note in load_document(self.path).notes}
+        except OSError:
+            current = {note.note_id for note in self.doc.notes}
+        return len(self.touched & current)
+
+    def notes_on_block(self, index: int) -> list[Note]:
+        """Pending notes shown under a block (notes whose text was lost sit on block 0)."""
+        return [n for n in self.doc.notes if (self.doc.note_blocks.get(n.note_id) or 0) == index]
+
+    def commit_note(self, text: str, editing: Note | None) -> str:
+        """Write the note box to the file (add, update, or delete); return the status line."""
+        text = text.strip()
+        block = self.doc.blocks[self.cursor]
+        if editing is None:
+            if not text:
+                return "Empty comment; nothing saved"
+            note = add_note_to_file(
+                self.path, block.start, block.end, self.doc.block_source(self.cursor), text
+            )
+            self.touched.add(note.note_id)
+            message = f"{note.note_id} saved to the file"
+        elif not text:
+            if delete_note_in_file(self.path, editing.note_id):
+                self.touched.discard(editing.note_id)
+                message = f"{editing.note_id} deleted"
+            else:
+                message = f"Error: {editing.note_id} is no longer in the file"
+        elif update_note_in_file(self.path, editing.note_id, text):
+            self.touched.add(editing.note_id)
+            message = f"{editing.note_id} updated"
+        else:
+            message = f"Error: {editing.note_id} is no longer in the file"
+        self.reload()
+        return message
+
+    def edit_existing(self, screen: curses.window) -> None:
+        """Shift+C: edit a saved note on this block (a numbered list when there are several)."""
+        notes = self.notes_on_block(self.cursor)
+        if not notes:
+            self.app.status = "No saved note on this block · press c to add one"
+            return
+        if len(notes) == 1:
+            chosen = notes[0]
+        else:
+            labels = [f"{n.note_id} · {comment_preview(n.human_comment, 50)}" for n in notes]
+            index = self.app.choose_modal(screen, "Edit which note?", labels)
+            if index is None:
+                return
+            chosen = notes[index]
+        self.edit_comment(screen, chosen)
 
     def set_zoom(self, level: int) -> None:
         """Change the reading zoom (simulated with the layout) and remember it."""
@@ -465,7 +550,7 @@ class Reader:
                 continue
             count = len(self.doc.blocks)
             if key in (ord("q"), 27):
-                return self.saved
+                return self.touched_pending()
             if key in (curses.KEY_UP, ord("k")):
                 self.cursor = max(0, self.cursor - 1)
             elif key in (curses.KEY_DOWN, ord("j")):
@@ -497,10 +582,13 @@ class Reader:
             elif key == ord("R"):
                 self.reload()
                 self.app.status = "Reloaded"
-            elif key == ord("c"):
+            elif key in (ord("c"), ord("C")):
                 if self.changed_on_disk:
                     self.reload()
-                self.edit_comment(screen)
+                if key == ord("c"):
+                    self.edit_comment(screen)
+                else:
+                    self.edit_existing(screen)
 
     # Drawing mirrors the comment composer's viewer.
     def draw(self, screen: curses.window) -> None:
@@ -600,7 +688,7 @@ class Reader:
                 _safe_addnstr(screen, y, x, segment, room, attr | curses.A_BOLD if is_bold else attr)
                 x += len(segment)
 
-        footer = " ↑/↓ move · ⇧↑/↓ page · +/- zoom · n/N heading · c comment · R reload · q close "
+        footer = " ↑/↓ move · ⇧↑/↓ page · +/- zoom · n/N heading · c note · C edit note · R reload · q close "
         app.draw_footer(screen, inner_bottom, footer)
         if box_height:
             self.draw_comment_box(screen, viewer_height)
@@ -612,7 +700,7 @@ class Reader:
         inner_height = _COMMENT_BOX_HEIGHT - 2
         inner_width = width - 4
         _safe_addnstr(screen, top, 0, "┣" + "━" * (width - 2) + "┫", width, app.border_attr())
-        badge = " ✎ AI NOTE "
+        badge = f" ✎ EDIT {self.editing.note_id} " if self.editing else " ✎ AI NOTE "
         _safe_addnstr(screen, top, 2, badge, width - 4, app.style("badge", curses.A_REVERSE) | curses.A_BOLD)
         block = self.doc.blocks[self.cursor]
         label = f" lines {block.start}-{block.end} · {comment_preview(block.text)} "
@@ -626,15 +714,21 @@ class Reader:
             self.edit_top = cursor_row - inner_height + 1
         for offset, (_logical, _start, text) in enumerate(visual_rows[self.edit_top : self.edit_top + inner_height], 1):
             _safe_addnstr(screen, top + offset, 2, text, inner_width)
-        help_text = " Ctrl+S save to file · Enter new line · Esc cancel "
+        if self.editing:
+            help_text = " Ctrl+S save (empty text deletes the note) · Ctrl+U clear line · Esc cancel "
+        else:
+            help_text = " Ctrl+S save to file · Ctrl+U clear line · Enter new line · Esc cancel "
         _safe_addnstr(screen, height - 1, 2, help_text, width - 4, app.style("muted"))
         try:
             screen.move(top + 1 + cursor_row - self.edit_top, 2 + min(cursor_col, inner_width - 1))
         except curses.error:
             pass
 
-    def edit_comment(self, screen: curses.window) -> None:
-        self.editor = TextBuffer()
+    def edit_comment(self, screen: curses.window, editing: Note | None = None) -> None:
+        """Open the note box: empty for a new note, or filled in to edit a saved one."""
+        original = editing.human_comment if editing else ""
+        self.editing = editing
+        self.editor = TextBuffer(original)
         self.edit_top = 0
         curses.curs_set(1)
         try:
@@ -642,22 +736,13 @@ class Reader:
                 self.draw(screen)
                 key = screen.get_wch()
                 if key == "\x13":
-                    text = self.editor.text.strip()
-                    if not text:
-                        self.app.status = "Empty comment; nothing saved"
-                        return
-                    block = self.doc.blocks[self.cursor]
-                    note = add_note_to_file(
-                        self.path, block.start, block.end, self.doc.block_source(self.cursor), text
-                    )
-                    self.saved += 1
-                    self.reload()
-                    self.app.status = f"{note.note_id} saved to the file"
+                    self.app.status = self.commit_note(self.editor.text, editing)
                     return
                 if key == "\x1b":
-                    if needs_discard_confirmation("", self.editor.text):
+                    if needs_discard_confirmation(original, self.editor.text):
                         curses.curs_set(0)
-                        if not self.app.confirm(screen, "Unsaved note", ["Discard this note? (y/n)"]):
+                        question = "Discard the changes to this note? (y/n)" if editing else "Discard this note? (y/n)"
+                        if not self.app.confirm(screen, "Unsaved note", [question]):
                             curses.curs_set(1)
                             continue
                     self.app.status = "Note cancelled"
@@ -669,6 +754,7 @@ class Reader:
                     self.editor.insert(key)
         finally:
             self.editor = None
+            self.editing = None
             curses.curs_set(0)
 
 

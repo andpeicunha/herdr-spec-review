@@ -182,6 +182,57 @@ def remove_note(text: str, note_id: str) -> str:
     return f"{body}\n---\n\n{section}"
 
 
+_FIELD_LINE_RE = re.compile(r"^(?:" + "|".join(re.escape(f) for f in _FIELDS) + r"):")
+
+
+def replace_comment(text: str, note_id: str, comment: str) -> str | None:
+    """Return ``text`` with one pending note's Human Comment replaced.
+
+    Only that field changes (Status, Lines, Selected Text, Created At stay), so the
+    file still parses in ai-notes-md. Returns None when the note is not in the file,
+    is not pending, or has no Human Comment field.
+    """
+    section = split_document(text)[1]
+    offset = len(text) - len(section)
+    heading = re.search(rf"^## {re.escape(note_id)}[ \t]*$", section, re.M)
+    if not heading:
+        return None
+    following = re.search(r"^## ", section[heading.end() :], re.M)
+    block_end = heading.end() + following.start() if following else len(section)
+    block = section[heading.end() : block_end]
+    if not _parse_note(note_id, block).pending:
+        return None
+    lines = block.split("\n")
+    start = next((i for i, line in enumerate(lines) if line.startswith("Human Comment:")), None)
+    if start is None:
+        return None
+    stop = next(
+        (i for i in range(start + 1, len(lines)) if _FIELD_LINE_RE.match(lines[i])), len(lines)
+    )
+    lines[start + 1 : stop] = ["", *comment.strip().split("\n"), ""]
+    return text[:offset] + section[: heading.end()] + "\n".join(lines) + section[block_end:]
+
+
+def update_note_in_file(path: str, note_id: str, comment: str) -> bool:
+    """Re-read the file and change one pending note's comment atomically."""
+    with open(path, encoding="utf-8") as source:
+        updated = replace_comment(source.read(), note_id, comment)
+    if updated is None:
+        return False
+    write_atomic(path, updated)
+    return True
+
+
+def delete_note_in_file(path: str, note_id: str) -> bool:
+    """Re-read the file and delete one note (cleaning the section when none is left)."""
+    with open(path, encoding="utf-8") as source:
+        text = source.read()
+    if note_id not in [note.note_id for note in parse_notes(text)]:
+        return False
+    write_atomic(path, remove_note(text, note_id))
+    return True
+
+
 def now_stamp(moment: float | None = None) -> str:
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(moment))
 
