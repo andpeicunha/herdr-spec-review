@@ -1,0 +1,18 @@
+id = "andpeicunha.spec-review"
+name = "spec-review"
+version = "0.1.0"
+min_herdr_version = "0.9.5"
+platforms = ["macos", "linux"]
+description = "Find open OpenSpec changes across worktrees, read SDD artifacts block by block, and leave AI Notes for the agent."
+
+[[panes]]
+id = "reader"
+title = "spec review"
+placement = "zoomed"
+command = ["sh", "-c", "exec \"$HERDR_PLUGIN_ROOT/bin/spec-review-ui\""]
+
+[[actions]]
+id = "open"
+title = "spec review: open"
+contexts = ["pane", "workspace"]
+command = ["python3", "-m", "specreview.cli", "launch"]

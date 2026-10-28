@@ -1,6 +1,7 @@
 """Talk to Herdr: open the reader pane, list pane cwds, and send the handoff prompt."""
 from __future__ import annotations
 
+import base64
 import json
 import os
 import subprocess
@@ -91,3 +92,9 @@ def send_prompt(pane: str, prompt: str) -> tuple[bool, str]:
         return True, ""
     except (OSError, subprocess.TimeoutExpired) as error:
         return False, str(error)
+
+
+def copy_text_to_clipboard(text: str) -> None:
+    """Copy through OSC 52, which works over SSH and inside Herdr panes."""
+    encoded = base64.b64encode(text.encode("utf-8")).decode("ascii")
+    os.write(1, f"\x1b]52;c;{encoded}\a".encode("ascii"))
