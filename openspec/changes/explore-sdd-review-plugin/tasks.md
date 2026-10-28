@@ -52,10 +52,11 @@
 ## 8. Publicação
 
 - [ ] 8.1 README com fluxo, teclas, settings, MCP e prints
-- [ ] 8.2 Repositório no GitHub com tópico `herdr-plugin` e release `v0.1.0`
+- [x] 8.2 Repositório público no GitHub com tópico `herdr-plugin` e pre-release `v0.1.0-beta.1`
 - [ ] 8.3 Trocar o plugin linkado localmente pela instalação do GitHub
 
 ## 9. Depois do MVP
 
 - [ ] 9.1 Extrair o núcleo compartilhado (markdown, layout, editor) entre `herdr-output-comment-composer` e este plugin: hoje as correções são aplicadas nos dois (listas, negrito, `Ctrl+U`)
 - [ ] 9.2 Portar o zoom e a edição de notas para o comment composer, se fizerem falta lá
+- [ ] 9.3 O servidor MCP precisa de um caminho fixo (o Herdr instala cada update em uma pasta nova): achar um jeito de acompanhar a versão instalada

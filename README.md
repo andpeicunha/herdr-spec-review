@@ -6,6 +6,9 @@ changes in a repository and all of its git worktrees, opens an artifact in a
 terminal reader, and lets you leave **AI Notes** that the agent turns into
 changes to the spec.
 
+> **Beta (`0.1.0-beta.1`).** It works end to end with Claude Code in Herdr, but the
+> behavior and the notes format may still change. See [Known limits](#known-limits-beta).
+
 ## Flow
 
 1. Open the plugin (Herdr action) or ask your agent to open an artifact (MCP).
@@ -21,7 +24,7 @@ changes to the spec.
    always clean.
 
 Notes use the same format as the
-[`ai-notes-md`](https://github.com/andpeicunha) VS Code extension, so notes
+[`ai-notes-md`](https://github.com/andpeicunha/ai-notes-md) VS Code extension, so notes
 written in one tool show up in the other.
 
 ## Requirements
@@ -31,17 +34,17 @@ written in one tool show up in the other.
 
 ## Install
 
-Local development:
-
 ```sh
-herdr plugin link .
+herdr plugin install andpeicunha/herdr-spec-review
 ```
 
-Bind the action in your Herdr configuration:
+For local development, link a checkout instead: `herdr plugin link .`
+
+Bind the action in your Herdr configuration (pick a key that is free in your setup):
 
 ```toml
 [[keys.command]]
-key = "prefix+r"
+key = "prefix+shift+s"
 type = "plugin_action"
 command = "andpeicunha.spec-review.open"
 description = "spec-review: open"
@@ -49,7 +52,10 @@ description = "spec-review: open"
 
 ### MCP server for agents
 
-Register the stdio server once per agent:
+Register the stdio server once per agent. Use a **clone of this repository** at a
+fixed path (`git clone https://github.com/andpeicunha/herdr-spec-review`): Herdr
+installs every update of a plugin into a new directory, so a path inside the
+installed plugin would stop working after an update.
 
 ```sh
 # Claude Code
@@ -60,6 +66,8 @@ claude mcp add --scope user spec-review -- /path/to/herdr-spec-review/bin/spec-r
 # Codex: ~/.codex/config.toml
 [mcp_servers.spec-review]
 command = "/path/to/herdr-spec-review/bin/spec-review-mcp"
+# Codex only passes the variables you list; open_artifact needs the agent's Herdr pane.
+env_vars = ["HERDR_PANE_ID", "HERDR_WORKSPACE_ID", "HERDR_TAB_ID", "HERDR_BIN_PATH", "HERDR_SOCKET_PATH", "HERDR_ENV"]
 ```
 
 Tools: `list_open_changes`, `list_artifacts`, `open_artifact`,
@@ -109,6 +117,17 @@ Put settings in `config.env` in the plugin config directory
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `SPEC_REVIEW_ROOTS` | unset | `:`-separated folders whose child repos appear under `r` |
+
+## Known limits (beta)
+
+- **No "ready to archive" check yet.** `openspec archive` copies a leftover
+  `# AI Notes` section into the main specs without a warning. Resolve or delete all
+  notes before archiving.
+- **Tested mostly with Claude Code.** The Codex setup above works by configuration,
+  but it has had less testing.
+- **The MCP server needs a fixed path** (see above), so it can run a different
+  version than the plugin installed by Herdr until you `git pull` the clone.
+- OpenSpec changes only; other SDD layouts are not supported.
 
 ## Development
 
