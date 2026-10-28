@@ -27,6 +27,13 @@ notas e em quais arquivos.
 - **THEN** nada é enviado
 - **AND** as notas continuam no arquivo com `Status: pending`
 
+#### Scenario: Terminar a análise depois
+
+- **GIVEN** o usuário recusou o envio de 2 notas em `proposal.md`
+- **WHEN** ele reabre `proposal.md`, salva mais 1 nota e confirma o envio ao fechar
+- **THEN** as 2 notas antigas aparecem abaixo dos seus blocos durante a leitura
+- **AND** a mensagem pede ao agente para processar todas as 3 notas pendentes do arquivo
+
 ### Requirement: Mensagem curta para o agente da sessão
 
 Quando o usuário confirma, o plugin MUST enviar ao agente da pane de origem uma

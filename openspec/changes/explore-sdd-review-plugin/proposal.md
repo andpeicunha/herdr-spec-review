@@ -8,11 +8,13 @@ Já temos no plugin `herdr-output-comment-composer` uma UI de terminal madura (b
 
 Novo plugin Herdr, `herdr-spec-review`, com este fluxo:
 
-1. **Descoberta**: ao abrir, encontra todas as changes OpenSpec em aberto (`openspec/changes/*`, ignorando `archive/`) no repositório atual e em todos os seus git worktrees.
-2. **Escolha**: o usuário escolhe a change e depois o artefato (`proposal.md`, `design.md`, `tasks.md` ou um `specs/**/spec.md`). Pode trocar para outro repositório. Ou o agente abre o artefato direto, por uma tool MCP, quando o usuário pede.
+1. **Duas entradas**:
+   - **Pelo agente**: durante a conversa, o usuário pede para abrir a proposal ou qualquer artefato em que estão trabalhando, e o agente abre o leitor direto nele, por uma tool MCP.
+   - **Pelo atalho do Herdr**: o usuário abre o plugin e escolhe o que quer analisar.
+2. **Descoberta e escolha (entrada pelo atalho)**: o usuário escolhe o repositório, depois a change e depois o artefato (`proposal.md`, `design.md`, `tasks.md` ou um `specs/**/spec.md`). O plugin encontra as changes OpenSpec em aberto (`openspec/changes/*`, ignorando `archive/`) no repositório escolhido e em todos os seus git worktrees. O repositório da pane atual já vem selecionado.
 3. **Leitura e comentários**: o artefato abre em uma pane no estilo do comment composer, onde o usuário navega por blocos e comenta com `c`.
 4. **AI Notes no próprio Markdown**: cada `Ctrl+S` grava a nota no arquivo, no mesmo formato da extensão `ai-notes-md` (seção `# AI Notes`, instruções para agentes, `## NOTE-XXX` com `Status: pending`). As notas sobrevivem a fechar e reabrir a leitura.
-5. **Handoff ao agente**: ao fechar, se houver notas novas, o plugin pede confirmação e envia uma mensagem curta para o agente da sessão atual, apontando o arquivo com notas pendentes.
+5. **Handoff ao agente**: ao fechar, se houver notas novas, o plugin pede confirmação e envia uma mensagem curta para o agente da sessão atual, apontando o arquivo com notas pendentes. O usuário pode responder não para terminar a análise depois: nada é enviado e as notas ficam no arquivo como pendentes. Na próxima leitura elas reaparecem, e o próximo envio cobre todas as notas pendentes do arquivo.
 6. **Ciclo das notas**: o agente aplica cada nota na estrutura padrão do SDD (requirements, scenarios, design, tasks) e remove a nota resolvida. Quando não restam notas pendentes, a seção `# AI Notes` inteira some. **O artefato final fica sempre limpo.**
 
 ## Capabilities
