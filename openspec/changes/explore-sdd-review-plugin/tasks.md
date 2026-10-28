@@ -10,7 +10,6 @@
 - [ ] 2.1 Documentar o formato `ai-notes-md` v0.0.17 em `docs/ai-notes-format.md`
 - [x] 2.2 Implementar parser e escritor de notas (append atômico, próximo id, remoção da seção quando vazia)
 - [x] 2.3 Testes de ida e volta com arquivos gerados pela extensão do VS Code
-- [ ] 2.4 Abrir item para corrigir o README do `ai-notes-md` (ainda descreve histórico `✅`)
 
 ## 3. Base do plugin
 
@@ -48,7 +47,7 @@
 - [x] 7.2 Tools `list_open_changes`, `list_artifacts`, `open_artifact`, `pending_notes`
 - [x] 7.3 `open_artifact` abre o leitor na pane do agente e valida o caminho
 - [x] 7.4 Registrar no Claude Code e testar o fluxo real (abrir, comentar, handoff de volta)
-- [ ] 7.5 Registrar no Codex depois do primeiro teste
+- [x] 7.5 Registrar no Codex (`codex mcp add`, com `env_vars` para repassar `HERDR_*`; o Codex só repassa as variáveis listadas)
 
 ## 8. Publicação
 
