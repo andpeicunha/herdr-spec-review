@@ -116,4 +116,11 @@ Put settings in `config.env` in the plugin config directory
 python3 -m unittest discover -s tests -v
 ```
 
+To check the curses UI without a real terminal, run it in a virtual terminal:
+
+```sh
+SPEC_REVIEW_ARTIFACT=path/to/proposal.md SPEC_REVIEW_SOURCE_PANE=fake \
+  uv run --no-project --with pyte python3 tools/render_screen.py spec_review.py 90 24 j c 'a note' '\x13' @
+```
+
 The design and specs live in `openspec/changes/explore-sdd-review-plugin/`.
