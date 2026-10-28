@@ -543,6 +543,7 @@ class Reader:
             [text for text, _kind in markdown], comments, width=content_width, spacing=True,
             compact_after=compact_after, no_wrap={i for i, (_t, k) in enumerate(markdown) if k == "table"},
             no_wrap_width=full_width,
+            preserve_space={i for i, (_t, k) in enumerate(markdown) if k == "code"},
         )
         selected_row = next(i for i, (kind, line, _) in enumerate(rows) if kind == "line" and line == self.cursor)
         available = content_rows_available(height, box_height)
