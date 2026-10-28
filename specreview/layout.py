@@ -14,8 +14,15 @@ def build_display_rows(
     spacing: bool = False,
     compact_after: set[int] | None = None,
     no_wrap: set[int] | None = None,
+    no_wrap_width: int | None = None,
 ) -> list[tuple[str, int, str]]:
+    """Wrap blocks into display rows.
+
+    Blocks in ``no_wrap`` (tables) are cut instead of wrapped, at ``no_wrap_width``
+    (default ``width``), so they can be wider than the reading column.
+    """
     rows: list[tuple[str, int, str]] = []
+    cut_width = width if no_wrap_width is None else no_wrap_width
     for index, line in enumerate(lines):
         first_row = True
         physical_lines = line.splitlines() or [""]
@@ -23,7 +30,7 @@ def build_display_rows(
             if width <= 0:
                 wrapped = [physical_line]
             elif index in (no_wrap or set()):
-                wrapped = [physical_line[:width]]
+                wrapped = [physical_line[:cut_width]]
             else:
                 wrapped = textwrap.wrap(
                     physical_line,
@@ -142,3 +149,36 @@ def scroll_position_label(total_rows: int, visible_rows: int, top: int) -> str:
     if top >= max_top:
         return "end"
     return f"{round(top / max_top * 100)}%"
+
+
+ZOOM_MIN = -2
+ZOOM_MAX = 3
+# Share of the available width used by the reading column when zooming in.
+_ZOOM_IN_SHARE = {0: 1.0, 1: 0.85, 2: 0.7, 3: 0.55}
+_MIN_COLUMN = 24
+
+
+def clamp_zoom(level: int) -> int:
+    return max(ZOOM_MIN, min(ZOOM_MAX, level))
+
+
+def zoom_layout(level: int, available: int) -> tuple[int, int, str]:
+    """Return (column width, left margin, spacer policy) for a zoom level.
+
+    The terminal font cannot change, so zoom is simulated with the layout:
+    zooming in narrows and centers the reading column (fewer words per line);
+    zooming out keeps the full width and drops spacer rows, so more fits on screen.
+    The policy is "all" (a spacer after every block), "sections" (only before a
+    heading), or "none". ``available`` is the full text width; tables ignore the
+    column and use all of it.
+    """
+    available = max(1, available)
+    level = clamp_zoom(level)
+    if level > 0:
+        column = min(available, max(_MIN_COLUMN, int(available * _ZOOM_IN_SHARE[level])))
+        return column, (available - column) // 2, "all"
+    return available, 0, {0: "all", -1: "sections", -2: "none"}[level]
+
+
+def zoom_label(level: int) -> str:
+    return f"zoom {level:+d}" if clamp_zoom(level) else ""

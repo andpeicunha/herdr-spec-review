@@ -37,6 +37,36 @@ seções `##` (nos outros artefatos).
 - **WHEN** o usuário usa o atalho de próximo requirement
 - **THEN** o cursor vai para o próximo `### Requirement:`
 
+### Requirement: Zoom simulado pelo layout
+
+O leitor MUST permitir aumentar e reduzir o texto com `+` e `-` (e `0` para
+voltar ao normal), afetando só o texto da pane, e MUST lembrar o nível entre
+aberturas, com um único nível para todas as panes. Como o terminal não permite
+mudar a fonte, o zoom MUST ser simulado pelo layout: aumentar estreita e
+centraliza a coluna de leitura, e reduzir usa a largura toda com menos linhas em
+branco.
+
+#### Scenario: Aumentar o texto
+
+- **GIVEN** o leitor está no nível normal em uma pane larga
+- **WHEN** o usuário pressiona `+`
+- **THEN** a coluna de texto fica mais estreita e centralizada
+- **AND** o cabeçalho mostra o nível, por exemplo `zoom +1`
+
+#### Scenario: Tabelas com zoom
+
+- **GIVEN** o artefato tem uma tabela e o nível de zoom é `+3`
+- **WHEN** o leitor desenha a tabela
+- **THEN** a tabela usa a largura toda da pane, sem a margem da coluna
+- **AND** as células que não cabem são cortadas com `…`
+
+#### Scenario: Limites do zoom
+
+- **GIVEN** o nível de zoom está no máximo (`+3`) ou no mínimo (`-2`)
+- **WHEN** o usuário pressiona `+` ou `-` de novo
+- **THEN** o nível não muda
+- **AND** a linha de status avisa que o limite foi atingido
+
 ### Requirement: Recarregar quando o arquivo muda
 
 O leitor MUST detectar que o arquivo mudou no disco (por exemplo, o agente

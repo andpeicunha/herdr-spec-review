@@ -77,11 +77,26 @@ Reader:
 | --- | --- |
 | `↑` / `↓` | Previous / next block |
 | `Shift+↑` / `Shift+↓` | Page up / down |
+| `+` / `-` | Zoom in / out (see below) |
+| `0` | Reset the zoom |
 | `n` / `N` | Next / previous heading |
 | `c` | Write an AI Note on the current block |
 | `Ctrl+S` | Save the note into the file |
 | `R` | Reload after the file changed on disk |
 | `q` / `Esc` | Close (asks before sending new notes to the agent) |
+
+## Zoom
+
+A terminal program cannot change the font size, so the zoom is simulated with the
+layout. It only affects the text inside the reader pane, and the level is saved
+(one level for all panes).
+
+- **Zoom in** (`+`, up to `+3`): a narrower, centered reading column, so there are
+  fewer words per line.
+- **Zoom out** (`-`, down to `-2`): the full width and fewer blank rows, so more
+  content fits on the screen.
+- **Tables** always use the full pane width, at every level. A table that is
+  still too wide has its widest cells cut with `…`.
 
 ## Settings
 

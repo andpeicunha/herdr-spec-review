@@ -22,13 +22,18 @@ from .editor import TextBuffer, needs_discard_confirmation
 from .herdr_io import build_handoff_message, copy_text_to_clipboard, pane_cwds, send_prompt
 from .layout import (
     COMMENT_PREFIX,
+    ZOOM_MAX,
+    ZOOM_MIN,
     build_display_rows,
+    clamp_zoom,
     content_rows_available,
     editor_cursor_position,
     editor_visual_rows,
     page_target,
     scroll_position_label,
     scrollbar_thumb,
+    zoom_label,
+    zoom_layout,
 )
 from .markdown import bold_segments, comment_preview, format_markdown_lines
 from .settings import setting
@@ -104,6 +109,24 @@ def save_last_selection(repo: str, change: str, artifact: str) -> None:
         pass
 
 
+def load_zoom() -> int:
+    """The saved zoom level (one global level for all panes)."""
+    try:
+        with open(os.path.join(_state_dir(), "zoom"), encoding="utf-8") as source:
+            return clamp_zoom(int(source.read().strip()))
+    except (OSError, ValueError):
+        return 0
+
+
+def save_zoom(level: int) -> None:
+    try:
+        os.makedirs(_state_dir(), exist_ok=True)
+        with open(os.path.join(_state_dir(), "zoom"), "w", encoding="utf-8") as out:
+            out.write(str(clamp_zoom(level)))
+    except OSError:
+        pass
+
+
 def _home(path: str) -> str:
     home = os.path.expanduser("~")
     return "~" + path[len(home) :] if path.startswith(home + os.sep) or path == home else path
@@ -116,6 +139,7 @@ class App:
         self.artifact = artifact
         self.colors: dict[str, int] = {}
         self.status = ""
+        self.zoom = load_zoom()
 
     # ── Shared drawing ──────────────────────────────────────────────────
     def setup_colors(self) -> None:
@@ -413,6 +437,17 @@ class Reader:
         except OSError:
             pass
 
+    def set_zoom(self, level: int) -> None:
+        """Change the reading zoom (simulated with the layout) and remember it."""
+        clamped = clamp_zoom(level)
+        if clamped == self.app.zoom:
+            limit = "maximum" if level > ZOOM_MAX else "minimum" if level < ZOOM_MIN else "normal"
+            self.app.status = f"Zoom is already at the {limit} level"
+            return
+        self.app.zoom = clamped
+        save_zoom(clamped)
+        self.app.status = f"Zoom {clamped:+d}" if clamped else "Zoom reset"
+
     def heading_blocks(self) -> list[int]:
         return [i for i, b in enumerate(self.doc.blocks) if not b.code and b.text.startswith("#")]
 
@@ -453,6 +488,12 @@ class Reader:
                 else:
                     previous = [i for i in headings if i < self.cursor]
                     self.cursor = previous[-1] if previous else self.cursor
+            elif key in (ord("+"), ord("=")):
+                self.set_zoom(self.app.zoom + 1)
+            elif key in (ord("-"), ord("_")):
+                self.set_zoom(self.app.zoom - 1)
+            elif key == ord("0"):
+                self.set_zoom(0)
             elif key == ord("R"):
                 self.reload()
                 self.app.status = "Reloaded"
@@ -477,10 +518,12 @@ class Reader:
         rel = os.path.relpath(self.path, os.path.dirname(change_for_artifact(self.path) or self.path))
         change = os.path.basename(change_for_artifact(self.path) or os.path.dirname(self.path))
 
-        content_width = max(1, width - 6)
+        # Tables and rules use the full width; the zoom only changes the text column.
+        full_width = max(1, width - 6)
+        content_width, margin, spacer_policy = zoom_layout(self.app.zoom, full_width)
         texts = [block.text for block in self.doc.blocks]
         codes = [block.code for block in self.doc.blocks]
-        markdown = format_markdown_lines(texts, content_width, codes)
+        markdown = format_markdown_lines(texts, full_width, codes)
         comments: dict[int, str] = {}
         for note in self.doc.notes:
             index = self.doc.note_blocks.get(note.note_id)
@@ -492,9 +535,14 @@ class Reader:
             i for i in range(len(markdown) - 1)
             if (markdown[i][1] == "bullet" and markdown[i + 1][1] == "bullet") or codes[i + 1] == "code"
         }
+        if spacer_policy == "none":
+            compact_after = set(range(len(markdown)))
+        elif spacer_policy == "sections":
+            compact_after |= {i for i in range(len(markdown) - 1) if markdown[i + 1][1] != "heading"}
         rows = build_display_rows(
             [text for text, _kind in markdown], comments, width=content_width, spacing=True,
             compact_after=compact_after, no_wrap={i for i, (_t, k) in enumerate(markdown) if k == "table"},
+            no_wrap_width=full_width,
         )
         selected_row = next(i for i, (kind, line, _) in enumerate(rows) if kind == "line" and line == self.cursor)
         available = content_rows_available(height, box_height)
@@ -504,7 +552,8 @@ class Reader:
         block = self.doc.blocks[self.cursor]
         position = f"lines {block.start}-{block.end}" if block.end != block.start else f"line {block.start}"
         label = scroll_position_label(len(rows), available, top)
-        subtitle = f"{rel}  ·  {len(self.doc.notes)} pending note(s)  ·  {position}" + (f" · {label}" if label else "")
+        subtitle = f"{rel}  ·  {len(self.doc.notes)} pending note(s)  ·  {position}"
+        subtitle += "".join(f" · {part}" for part in (label, zoom_label(self.app.zoom)) if part)
         app.draw_frame(screen, change, subtitle)
 
         thumb = scrollbar_thumb(len(rows), available, top)
@@ -527,7 +576,10 @@ class Reader:
                 continue
             if kind in ("comment", "comment_continuation"):
                 prefix = COMMENT_PREFIX if kind == "comment" else " " * len(COMMENT_PREFIX)
-                _safe_addnstr(screen, y, 1, prefix + text, inner_width, app.style("comment", curses.A_BOLD) | curses.A_BOLD)
+                _safe_addnstr(
+                    screen, y, 1 + margin, prefix + text, inner_width - margin,
+                    app.style("comment", curses.A_BOLD) | curses.A_BOLD,
+                )
                 continue
             markdown_kind = markdown[index][1]
             if index == self.cursor:
@@ -535,8 +587,10 @@ class Reader:
             else:
                 attr = app.style(markdown_kind, curses.A_BOLD if markdown_kind == "heading" else 0)
             prefix = "▸ " if index == self.cursor and kind == "line" else "  "
-            _safe_addnstr(screen, y, 1, prefix, 2, app.style("marker"))
-            x = 3
+            # The marker sits next to the text; tables ignore the zoom margin.
+            marker_x = 1 if markdown_kind == "table" else 1 + margin
+            _safe_addnstr(screen, y, marker_x, prefix, 2, app.style("marker"))
+            x = marker_x + 2
             segments, _bold = bold_segments(text, bold_at_row[top + y - 3])
             for segment, is_bold in segments:
                 room = inner_width - (x - 1)
@@ -545,7 +599,7 @@ class Reader:
                 _safe_addnstr(screen, y, x, segment, room, attr | curses.A_BOLD if is_bold else attr)
                 x += len(segment)
 
-        footer = " ↑/↓ move · ⇧↑/↓ page · n/N heading · c comment · R reload · q close "
+        footer = " ↑/↓ move · ⇧↑/↓ page · +/- zoom · n/N heading · c comment · R reload · q close "
         app.draw_footer(screen, inner_bottom, footer)
         if box_height:
             self.draw_comment_box(screen, viewer_height)
