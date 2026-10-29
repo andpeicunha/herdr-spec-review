@@ -144,4 +144,6 @@ SPEC_REVIEW_ARTIFACT=path/to/proposal.md SPEC_REVIEW_SOURCE_PANE=fake \
   uv run --no-project --with pyte python3 tools/render_screen.py spec_review.py 90 24 j c 'a note' '\x13' @
 ```
 
-The design and specs live in `openspec/changes/explore-sdd-review-plugin/`.
+The specs live in `openspec/specs/`. The design history of the MVP is in
+`openspec/changes/archive/2026-10-29-explore-sdd-review-plugin/`, and the open
+follow-ups are in `openspec/changes/spec-review-beta-followups/`.
