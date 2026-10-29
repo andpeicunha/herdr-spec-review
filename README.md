@@ -6,7 +6,7 @@ changes in a repository and all of its git worktrees, opens an artifact in a
 terminal reader, and lets you leave **AI Notes** that the agent turns into
 changes to the spec.
 
-> **Beta (`0.1.0-beta.4`).** It works end to end with Claude Code in Herdr, but the
+> **Beta (`0.1.0-beta.5`).** It works end to end with Claude Code in Herdr, but the
 > behavior and the notes format may still change. See [Known limits](#known-limits-beta).
 
 ## Flow

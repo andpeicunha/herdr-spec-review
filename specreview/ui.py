@@ -37,7 +37,14 @@ from .layout import (
     zoom_label,
     zoom_layout,
 )
-from .markdown import bold_segments, comment_preview, continues_run, format_markdown_lines
+from .markdown import (
+    bold_segments,
+    comment_preview,
+    continues_run,
+    format_markdown_lines,
+    is_code_frame,
+    split_code_comment,
+)
 from .settings import setting
 
 # Open comment box: top divider, three text rows, and the frame's bottom edge.
@@ -161,7 +168,9 @@ class App:
             "success": (curses.COLOR_GREEN, -1),
             "error": (curses.COLOR_RED, -1),
             "heading": (curses.COLOR_CYAN, -1),
-            "code": (curses.COLOR_GREEN, -1),
+            "code": (252, 236) if color_count >= 256 else (curses.COLOR_WHITE, curses.COLOR_BLACK),
+            "code_comment": (245, 236) if color_count >= 256 else (curses.COLOR_CYAN, curses.COLOR_BLACK),
+            "code_frame": (245, -1) if color_count >= 256 else (curses.COLOR_BLUE, -1),
             "quote": (curses.COLOR_MAGENTA, -1),
             "rule": (curses.COLOR_BLUE, -1),
             "bullet": (curses.COLOR_WHITE, -1),
@@ -644,6 +653,18 @@ class Reader:
                 else:
                     self.edit_existing(screen)
 
+    def draw_code_line(self, screen: curses.window, y: int, x: int, text: str, inner_width: int) -> None:
+        """Code on a filled background so the block reads as a box; comments are dimmer."""
+        code_attr = self.app.style("code")
+        room = inner_width - (x - 1)
+        _safe_addnstr(screen, y, x, " " * max(0, room), room, code_attr)
+        code, comment = split_code_comment(text)
+        _safe_addnstr(screen, y, x, code, room, code_attr)
+        if comment:
+            _safe_addnstr(
+                screen, y, x + len(code), comment, room - len(code), self.app.style("code_comment", code_attr)
+            )
+
     # Drawing mirrors the comment composer's viewer.
     def draw(self, screen: curses.window) -> None:
         screen.erase()
@@ -735,6 +756,12 @@ class Reader:
             marker_x = 1 if markdown_kind in ("table", "record") else 1 + margin
             _safe_addnstr(screen, y, marker_x, prefix, 2, app.style("marker"))
             x = marker_x + 2
+            if markdown_kind == "code":
+                if is_code_frame(text):
+                    attr = app.style("code_frame", attr)
+                elif index != self.cursor:
+                    self.draw_code_line(screen, y, x, text, inner_width)
+                    continue
             segments, _bold = bold_segments(text, bold_at_row[top + y - 3])
             for segment, is_bold in segments:
                 room = inner_width - (x - 1)

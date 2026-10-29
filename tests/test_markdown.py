@@ -246,3 +246,21 @@ class MarkdownTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CodeStyleTests(unittest.TestCase):
+    def test_trailing_comment_is_split_from_the_code(self):
+        from specreview.markdown import split_code_comment
+
+        self.assertEqual(
+            split_code_comment("  const a = 1;   // already checked"),
+            ("  const a = 1;   ", "// already checked"),
+        )
+        self.assertEqual(split_code_comment("fetch('https://host/x')"), ("fetch('https://host/x')", ""))
+        self.assertEqual(split_code_comment("x = 1  # why"), ("x = 1  ", "# why"))
+
+    def test_code_frame_line_is_recognised(self):
+        from specreview.markdown import is_code_frame
+
+        self.assertTrue(is_code_frame("— code · ts ────────"))
+        self.assertFalse(is_code_frame("  const a = 1;"))

@@ -6,7 +6,7 @@ Usage:
 ENTRY is the script to run (for example spec_review.py). The child inherits this
 process environment (SPEC_REVIEW_ARTIFACT, HERDR_PLUGIN_STATE_DIR, ...). Each KEYS
 argument is sent in order: "@" prints the screen, "@b" prints it with bold cells
-in [ ], "BTAB" sends Shift+Tab, and Python escapes (\\r, \\t, \\x13, \\x1b) are decoded.
+in [ ], "@c" appends the fg/bg colors of one cell per row, "BTAB" sends Shift+Tab, and Python escapes (\\r, \\t, \\x13, \\x1b) are decoded.
 """
 import os
 import pty
@@ -62,7 +62,7 @@ def pump(t):
 
 pump(1.2)
 for step, keys in enumerate(sys.argv[4:]):
-    if keys in ("@", "@b"):
+    if keys in ("@", "@b", "@c"):
         print(f"--- screen {step} ---")
         for y in range(screen.lines):
             out, inside = "", False
@@ -72,7 +72,11 @@ for step, keys in enumerate(sys.argv[4:]):
                     out += "[" if char.bold else "]"
                     inside = char.bold
                 out += char.data
-            print((out + ("]" if inside else "")).rstrip())
+            line = (out + ("]" if inside else "")).rstrip()
+            if keys == "@c":
+                cell = screen.buffer[y][min(8, screen.columns - 1)]
+                line += f"   <fg={cell.fg} bg={cell.bg}>"
+            print(line)
         continue
     data = b"\x1b[Z" if keys == "BTAB" else keys.encode().decode("unicode_escape").encode()
     os.write(fd, data)
