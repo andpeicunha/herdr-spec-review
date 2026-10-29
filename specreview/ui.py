@@ -20,6 +20,7 @@ from .discovery import (
 from .document import Document, load_document
 from .editor import TextBuffer, needs_discard_confirmation
 from .help import READER_HELP, Section, clamp_scroll, help_layout, picker_help
+from .keys import ALT_DOWN, ALT_UP, read_key
 from .herdr_io import build_handoff_message, copy_text_to_clipboard, pane_cwds, send_prompt
 from .layout import (
     COMMENT_PREFIX,
@@ -595,8 +596,7 @@ class Reader:
         while True:
             self.check_disk()
             self.draw(screen)
-            screen.timeout(1000)
-            key = screen.getch()
+            key = read_key(screen, 1000)
             screen.timeout(-1)
             if key == -1:
                 continue
@@ -607,10 +607,10 @@ class Reader:
                 self.cursor = max(0, self.cursor - 1)
             elif key in (curses.KEY_DOWN, ord("j")):
                 self.cursor = min(count - 1, self.cursor + 1)
-            elif key in (curses.KEY_SR, curses.KEY_SF, curses.KEY_PPAGE, curses.KEY_NPAGE, ord("u"), ord("d")):
-                full = key in (curses.KEY_SR, curses.KEY_SF)
-                page = max(1, self.visible_rows - 2) if full else max(1, self.visible_rows // 2)
-                if key in (curses.KEY_SR, curses.KEY_PPAGE, ord("u")):
+            elif key in (ALT_UP, ALT_DOWN, curses.KEY_PPAGE, curses.KEY_NPAGE, ord("u"), ord("d")):
+                # Alt+arrows, PgUp/PgDn and u/d move half a screen.
+                page = max(1, self.visible_rows // 2)
+                if key in (ALT_UP, curses.KEY_PPAGE, ord("u")):
                     page = -page
                 self.cursor = page_target(self.display_rows, self.cursor, page)
             elif key == ord("g"):

@@ -6,7 +6,7 @@ changes in a repository and all of its git worktrees, opens an artifact in a
 terminal reader, and lets you leave **AI Notes** that the agent turns into
 changes to the spec.
 
-> **Beta (`0.1.0-beta.3`).** It works end to end with Claude Code in Herdr, but the
+> **Beta (`0.1.0-beta.4`).** It works end to end with Claude Code in Herdr, but the
 > behavior and the notes format may still change. See [Known limits](#known-limits-beta).
 
 ## Flow
@@ -86,7 +86,7 @@ Reader:
 | Key | Action |
 | --- | --- |
 | `↑` / `↓` | Previous / next block |
-| `Shift+↑` / `Shift+↓` | Page up / down |
+| `Alt+↑` / `Alt+↓` | Half a page up / down (also `u` / `d`, `Page Up` / `Page Down`) |
 | `+` / `-` | Zoom in / out (see below) |
 | `0` | Reset the zoom |
 | `n` / `N` | Next / previous heading |

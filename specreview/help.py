@@ -11,8 +11,8 @@ READER_HELP: list[Section] = [
         "Move",
         [
             ("↑ ↓ / k j", "previous / next block"),
-            ("⇧↑ ⇧↓", "page up / down"),
-            ("u d / PgUp PgDn", "half a page up / down"),
+            ("Alt+↑ Alt+↓ / PgUp PgDn", "half a page up / down"),
+            ("u d", "half a page up / down"),
             ("g G", "first / last block"),
             ("n N", "next / previous heading"),
         ],
