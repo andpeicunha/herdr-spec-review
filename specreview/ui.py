@@ -19,6 +19,7 @@ from .discovery import (
 )
 from .document import Document, load_document
 from .editor import TextBuffer, needs_discard_confirmation
+from .help import READER_HELP, Section, clamp_scroll, help_layout, picker_help
 from .herdr_io import build_handoff_message, copy_text_to_clipboard, pane_cwds, send_prompt
 from .layout import (
     COMMENT_PREFIX,
@@ -249,7 +250,7 @@ class App:
             if filtering or query:
                 self.status = f"Filter: {query}" + ("▏" if filtering else "")
             repos_hint = "r repos · " if "r" in extra_keys else ""
-            footer = f" ↑/↓ move · Enter open · / filter · {repos_hint}Esc back · q quit "
+            footer = f" ↑/↓ move · Enter open · / filter · {repos_hint}Esc back · q quit · ? help "
             self.draw_footer(screen, height - 2, footer)
             screen.refresh()
             key = screen.get_wch()
@@ -284,6 +285,8 @@ class App:
                     return "back", -1
             elif key == "q":
                 return "quit", -1
+            elif key == "?":
+                self.show_help(screen, picker_help("r" in extra_keys))
             elif isinstance(key, str) and key in extra_keys:
                 self.status = ""
                 return key, -1
@@ -413,6 +416,54 @@ class App:
                 return int(key) - 1
             if key in ("\x1b", "q"):
                 return None
+
+    def show_help(self, screen: curses.window, sections: list[Section]) -> None:
+        """Modal listing every shortcut of a screen; it scrolls when the pane is short."""
+        height, width = screen.getmaxyx()
+        modal_width = max(30, min(width - 2, 72))
+        rows, indent = help_layout(sections, modal_width - 4)
+        visible = max(1, min(len(rows), height - 4))
+        modal_height = visible + 2
+        modal = curses.newwin(
+            modal_height, modal_width, max(0, (height - modal_height) // 2), max(0, (width - modal_width) // 2)
+        )
+        modal.keypad(True)
+        offset = 0
+        while True:
+            modal.erase()
+            _draw_heavy_box(modal, self.border_attr())
+            _safe_addnstr(
+                modal, 0, 2, " Shortcuts ", modal_width - 4,
+                self.style("badge", curses.A_REVERSE) | curses.A_BOLD,
+            )
+            compact = modal_width < 44
+            hint = " ? close " if compact else " ? / Esc / q close "
+            if len(rows) > visible:
+                span = f"{offset + 1}-{offset + visible}"
+                hint += (
+                    f"· ↑/↓ {span}/{len(rows)} "
+                    if compact
+                    else f"· ↑/↓ scroll ({span} of {len(rows)}) "
+                )
+            _safe_addnstr(modal, modal_height - 1, 2, hint, modal_width - 4, self.style("muted"))
+            for y, (kind, keys, text) in enumerate(rows[offset : offset + visible], 1):
+                if kind == "section":
+                    _safe_addnstr(modal, y, 2, keys, modal_width - 4, self.style("heading", curses.A_BOLD) | curses.A_BOLD)
+                elif kind == "key":
+                    _safe_addnstr(modal, y, 2, keys, modal_width - 4, self.style("comment", curses.A_BOLD) | curses.A_BOLD)
+                    _safe_addnstr(modal, y, 2 + indent, text, modal_width - 4 - indent)
+            modal.refresh()
+            key = modal.get_wch()
+            if key in ("?", "\x1b", "q", "\n", "\r", curses.KEY_ENTER):
+                return
+            if key in (curses.KEY_UP, "k"):
+                offset = clamp_scroll(offset - 1, len(rows), visible)
+            elif key in (curses.KEY_DOWN, "j"):
+                offset = clamp_scroll(offset + 1, len(rows), visible)
+            elif key == curses.KEY_PPAGE:
+                offset = clamp_scroll(offset - visible, len(rows), visible)
+            elif key == curses.KEY_NPAGE:
+                offset = clamp_scroll(offset + visible, len(rows), visible)
 
     def run(self, screen: curses.window) -> None:
         curses.curs_set(0)
@@ -574,6 +625,8 @@ class Reader:
                 else:
                     previous = [i for i in headings if i < self.cursor]
                     self.cursor = previous[-1] if previous else self.cursor
+            elif key == ord("?"):
+                self.app.show_help(screen, READER_HELP)
             elif key in (ord("+"), ord("=")):
                 self.set_zoom(self.app.zoom + 1)
             elif key in (ord("-"), ord("_")):
@@ -690,7 +743,7 @@ class Reader:
                 _safe_addnstr(screen, y, x, segment, room, attr | curses.A_BOLD if is_bold else attr)
                 x += len(segment)
 
-        footer = " ↑/↓ move · ⇧↑/↓ page · +/- zoom · n/N heading · c note · C edit note · R reload · q close "
+        footer = " ↑/↓ move · c note · C edit · +/- zoom · R reload · q close · ? help "
         app.draw_footer(screen, inner_bottom, footer)
         if box_height:
             self.draw_comment_box(screen, viewer_height)

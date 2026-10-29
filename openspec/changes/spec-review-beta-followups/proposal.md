@@ -8,6 +8,7 @@ A change `explore-sdd-review-plugin` entregou o MVP do plugin `spec-review` (bet
 - **Decisões e medições**: onde mora o guard de archive, formato de `Expected AI Action` e o tempo de descoberta em um repositório real com vários worktrees.
 - **Documentação**: formato de notas em `docs/ai-notes-format.md` e prints do fluxo no README.
 - **Instalação e manutenção**: trocar o plugin linkado pela instalação do GitHub e achar um jeito de o servidor MCP acompanhar a versão instalada (o Herdr instala cada update em uma pasta nova).
+- **Ajuda de atalhos**: a tecla `?` abre uma janela com todos os atalhos da tela atual, no leitor e nas listas.
 - **Código compartilhado**: extrair o núcleo comum (markdown, layout, editor) entre este plugin e o `herdr-output-comment-composer`, e portar para o composer o que fizer falta (zoom, edição de notas).
 
 ## Capabilities
@@ -15,6 +16,7 @@ A change `explore-sdd-review-plugin` entregou o MVP do plugin `spec-review` (bet
 ### New Capabilities
 
 - `archive-readiness`: checar se uma change pode ser arquivada sem deixar notas ou seções `# AI Notes` para trás.
+- `shortcut-help`: mostrar todos os atalhos de uma tela em uma janela aberta pela tecla `?`.
 
 ### Modified Capabilities
 

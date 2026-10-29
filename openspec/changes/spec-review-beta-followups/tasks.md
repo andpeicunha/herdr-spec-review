@@ -19,7 +19,11 @@
 - [ ] 4.1 Trocar o plugin linkado localmente pela instalação do GitHub
 - [ ] 4.2 Achar um jeito de o servidor MCP acompanhar a versão instalada (o Herdr instala cada update em uma pasta nova)
 
-## 5. Código compartilhado
+## 5. Ajuda de atalhos
 
-- [ ] 5.1 Extrair o núcleo compartilhado (markdown, layout, editor) entre `herdr-output-comment-composer` e este plugin: hoje as correções são aplicadas nos dois
-- [ ] 5.2 Portar o zoom e a edição de notas para o comment composer, se fizerem falta lá
+- [x] 5.1 Tecla `?` com janela de atalhos no leitor e nas listas, rodapé enxuto com `? help`
+
+## 6. Código compartilhado
+
+- [ ] 6.1 Extrair o núcleo compartilhado (markdown, layout, editor) entre `herdr-output-comment-composer` e este plugin: hoje as correções são aplicadas nos dois
+- [ ] 6.2 Portar o zoom e a edição de notas para o comment composer, se fizerem falta lá

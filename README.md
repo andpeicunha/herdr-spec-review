@@ -6,7 +6,7 @@ changes in a repository and all of its git worktrees, opens an artifact in a
 terminal reader, and lets you leave **AI Notes** that the agent turns into
 changes to the spec.
 
-> **Beta (`0.1.0-beta.2`).** It works end to end with Claude Code in Herdr, but the
+> **Beta (`0.1.0-beta.3`).** It works end to end with Claude Code in Herdr, but the
 > behavior and the notes format may still change. See [Known limits](#known-limits-beta).
 
 ## Flow
@@ -79,7 +79,7 @@ to open the reader only when you ask.
 ## Keys
 
 Picker: `↑`/`↓` move · `Enter` open · `/` filter · `r` other repositories ·
-`Esc` back · `q` quit.
+`Esc` back · `q` quit · `?` all shortcuts.
 
 Reader:
 
@@ -95,6 +95,7 @@ Reader:
 | `Ctrl+S` | Save the note into the file (on an edited note, empty text deletes it) |
 | `Ctrl+U` | Clear the current line in the note box |
 | `R` | Reload after the file changed on disk |
+| `?` | Show all the shortcuts in a window (`Esc`, `?` or `q` closes it) |
 | `q` / `Esc` | Close (asks before sending new notes to the agent) |
 
 ## Zoom
