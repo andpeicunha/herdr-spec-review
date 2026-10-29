@@ -35,7 +35,7 @@ from .layout import (
     zoom_label,
     zoom_layout,
 )
-from .markdown import bold_segments, comment_preview, format_markdown_lines
+from .markdown import bold_segments, comment_preview, continues_run, format_markdown_lines
 from .settings import setting
 
 # Open comment box: top divider, three text rows, and the frame's bottom edge.
@@ -164,6 +164,7 @@ class App:
             "rule": (curses.COLOR_BLUE, -1),
             "bullet": (curses.COLOR_WHITE, -1),
             "table": (curses.COLOR_WHITE, -1),
+            "record": (curses.COLOR_WHITE, -1),
             "marker": (curses.COLOR_GREEN, -1),
         }
         for number, (name, colors) in enumerate(pairs.items(), 1):
@@ -621,7 +622,8 @@ class Reader:
             comments[index] = (comments[index] + "\n" + label) if index in comments else label
         compact_after = {
             i for i in range(len(markdown) - 1)
-            if (markdown[i][1] == "bullet" and markdown[i + 1][1] == "bullet") or codes[i + 1] == "code"
+            if (markdown[i][1] == "bullet" and markdown[i + 1][1] == "bullet")
+            or continues_run(codes[i], codes[i + 1])
         }
         if spacer_policy == "none":
             compact_after = set(range(len(markdown)))
@@ -629,7 +631,7 @@ class Reader:
             compact_after |= {i for i in range(len(markdown) - 1) if markdown[i + 1][1] != "heading"}
         rows = build_display_rows(
             [text for text, _kind in markdown], comments, width=content_width, spacing=True,
-            compact_after=compact_after, no_wrap={i for i, (_t, k) in enumerate(markdown) if k == "table"},
+            compact_after=compact_after, no_wrap={i for i, (_t, k) in enumerate(markdown) if k in ("table", "record")},
             no_wrap_width=full_width,
             preserve_space={i for i, (_t, k) in enumerate(markdown) if k == "code"},
         )
@@ -677,7 +679,7 @@ class Reader:
                 attr = app.style(markdown_kind, curses.A_BOLD if markdown_kind == "heading" else 0)
             prefix = "▸ " if index == self.cursor and kind == "line" else "  "
             # The marker sits next to the text; tables ignore the zoom margin.
-            marker_x = 1 if markdown_kind == "table" else 1 + margin
+            marker_x = 1 if markdown_kind in ("table", "record") else 1 + margin
             _safe_addnstr(screen, y, marker_x, prefix, 2, app.style("marker"))
             x = marker_x + 2
             segments, _bold = bold_segments(text, bold_at_row[top + y - 3])

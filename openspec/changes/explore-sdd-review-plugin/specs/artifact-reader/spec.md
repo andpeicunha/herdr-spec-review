@@ -37,6 +37,29 @@ seções `##` (nos outros artefatos).
 - **WHEN** o usuário usa o atalho de próximo requirement
 - **THEN** o cursor vai para o próximo `### Requirement:`
 
+### Requirement: Cada linha de tabela é um bloco
+
+O leitor MUST tratar cada linha de uma tabela como um bloco selecionável e
+comentável, e o cabeçalho (com a linha separadora) como um bloco. Uma tabela que
+cabe na pane MUST aparecer com colunas alinhadas. Uma tabela que não cabe sem
+cortar células MUST aparecer como um registro por linha, com linhas `Nome: valor`
+de texto completo e uma linha de cabeçalho `Columns:`. Copiar um intervalo de
+linhas MUST gerar Markdown válido.
+
+#### Scenario: Comentar uma linha de tabela
+
+- **GIVEN** o artefato tem uma tabela com três linhas de dados
+- **WHEN** o usuário move o cursor para a segunda linha e salva uma nota
+- **THEN** a nota registra as linhas reais do arquivo dessa linha e cita só essa linha
+- **AND** a nota aparece abaixo dessa linha
+
+#### Scenario: Tabela larga vira registros
+
+- **GIVEN** a soma das larguras naturais das colunas é maior que a largura da pane
+- **WHEN** o leitor desenha a tabela
+- **THEN** cada linha aparece como um registro com todos os campos por extenso
+- **AND** nenhuma célula é cortada com `…`
+
 ### Requirement: Zoom simulado pelo layout
 
 O leitor MUST permitir aumentar e reduzir o texto com `+` e `-` (e `0` para
@@ -58,7 +81,7 @@ branco.
 - **GIVEN** o artefato tem uma tabela e o nível de zoom é `+3`
 - **WHEN** o leitor desenha a tabela
 - **THEN** a tabela usa a largura toda da pane, sem a margem da coluna
-- **AND** as células que não cabem são cortadas com `…`
+- **AND** se a tabela não couber, cada linha vira um registro com o texto completo, sem células cortadas
 
 #### Scenario: Limites do zoom
 

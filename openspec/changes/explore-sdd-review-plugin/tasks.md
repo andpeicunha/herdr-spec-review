@@ -32,6 +32,7 @@
 - [x] 5.3 `c` + `Ctrl+S` grava a nota no arquivo com as linhas reais
 - [x] 5.4 Navegação por requirement/scenario e por seção `##`
 - [x] 5.5 Detectar mudança do arquivo no disco e oferecer recarregar
+- [x] 5.8 Cada linha de tabela é um bloco; tabela que não cabe vira registros com o texto completo
 - [x] 5.7 Editar (`Shift+C`) e apagar notas pendentes no leitor, e `Ctrl+U` na caixa de nota
 - [x] 5.6 Zoom simulado (`+`/`-`/`0`, níveis -2 a +3, tabelas na largura toda, nível salvo)
 

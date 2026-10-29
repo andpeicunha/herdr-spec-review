@@ -47,7 +47,8 @@ class DocumentTests(unittest.TestCase):
         self.assertEqual(ranges["### Requirement: Login"], (5, 5))
         self.assertEqual(ranges["O sistema MUST validar o token antes de carregar dados."], (7, 8))
         self.assertEqual(ranges["- **THEN** o sistema recusa"], (13, 13))
-        self.assertEqual(ranges["| Campo | Tipo |"], (15, 17))
+        self.assertEqual(ranges["| Campo | Tipo |"], (15, 16))  # header + separator line
+        self.assertEqual(ranges["| token | string |"], (17, 17))
         self.assertEqual(ranges["echo ok"], (21, 21))
         self.assertEqual(doc.block_source(1), "## ADDED Requirements")
 

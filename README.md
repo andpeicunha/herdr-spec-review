@@ -6,7 +6,7 @@ changes in a repository and all of its git worktrees, opens an artifact in a
 terminal reader, and lets you leave **AI Notes** that the agent turns into
 changes to the spec.
 
-> **Beta (`0.1.0-beta.1`).** It works end to end with Claude Code in Herdr, but the
+> **Beta (`0.1.0-beta.2`).** It works end to end with Claude Code in Herdr, but the
 > behavior and the notes format may still change. See [Known limits](#known-limits-beta).
 
 ## Flow
@@ -14,8 +14,9 @@ changes to the spec.
 1. Open the plugin (Herdr action) or ask your agent to open an artifact (MCP).
 2. Pick the repository, the change, and the artifact (`proposal.md`,
    `design.md`, `specs/**/spec.md`, `tasks.md`).
-3. Read it block by block and press `c` on any block to write a note. Press `C`
-   to edit a saved note; erase its text and save to delete it.
+3. Read it block by block and press `c` on any block (a paragraph, a list item, a
+   single table row, a line of code) to write a note. Press `C` to edit a saved
+   note; erase its text and save to delete it.
    `Ctrl+S` saves the note **into the Markdown file**.
 4. Close with `q`. If you saved notes, confirm and the agent in your session
    gets a short message pointing to the file.
@@ -106,8 +107,9 @@ layout. It only affects the text inside the reader pane, and the level is saved
   fewer words per line.
 - **Zoom out** (`-`, down to `-2`): the full width and fewer blank rows, so more
   content fits on the screen.
-- **Tables** always use the full pane width, at every level. A table that is
-  still too wide has its widest cells cut with `…`.
+- **Tables** always use the full pane width, at every level. Every table row is its
+  own block. A table that does not fit shows as one record per row (`Name: value`
+  lines with the full text, no cut cells) instead of an aligned table.
 
 ## Settings
 

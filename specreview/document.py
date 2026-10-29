@@ -61,9 +61,11 @@ def map_block_lines(texts: list[tuple[str, str]], body_lines: list[str]) -> list
         end = max(start, limit)
         while end > start and not body_lines[end - 1].strip():
             end -= 1
-        if code or (index + 1 < len(starts) and starts[index + 1] == start):
+        if code in ("fence", "code", "code_gap") or (
+            index + 1 < len(starts) and starts[index + 1] == start
+        ):
             # A code line is one source line; several blocks can also share one
-            # source line (e.g. "a • b • c").
+            # source line (e.g. "a • b • c"). A table header keeps its separator line.
             end = start
         blocks.append(Block(text, code, start, end))
     return blocks
