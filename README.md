@@ -53,20 +53,25 @@ description = "spec-review: open"
 
 ### MCP server for agents
 
-Register the stdio server once per agent. Use a **clone of this repository** at a
-fixed path (`git clone https://github.com/andpeicunha/herdr-spec-review`): Herdr
-installs every update of a plugin into a new directory, so a path inside the
-installed plugin would stop working after an update.
+Register the stdio server once per agent. Herdr installs every update of a plugin
+into a new directory, so do not register a path inside the installed plugin.
+Instead, the plugin writes a small launcher to its config directory, which survives
+updates. It is created when Herdr starts (or the first time you open the plugin),
+and it always runs the newest installed version:
+
+```sh
+~/.config/herdr/plugins/config/andpeicunha.spec-review/spec-review-mcp
+```
 
 ```sh
 # Claude Code
-claude mcp add --scope user spec-review -- /path/to/herdr-spec-review/bin/spec-review-mcp
+claude mcp add --scope user spec-review -- ~/.config/herdr/plugins/config/andpeicunha.spec-review/spec-review-mcp
 ```
 
 ```toml
-# Codex: ~/.codex/config.toml
+# Codex: ~/.codex/config.toml (use the absolute path; Codex does not expand ~)
 [mcp_servers.spec-review]
-command = "/path/to/herdr-spec-review/bin/spec-review-mcp"
+command = "/home/you/.config/herdr/plugins/config/andpeicunha.spec-review/spec-review-mcp"
 # Codex only passes the variables you list; open_artifact needs the agent's Herdr pane.
 env_vars = ["HERDR_PANE_ID", "HERDR_WORKSPACE_ID", "HERDR_TAB_ID", "HERDR_BIN_PATH", "HERDR_SOCKET_PATH", "HERDR_ENV"]
 ```
@@ -129,8 +134,6 @@ Put settings in `config.env` in the plugin config directory
   notes before archiving.
 - **Tested mostly with Claude Code.** The Codex setup above works by configuration,
   but it has had less testing.
-- **The MCP server needs a fixed path** (see above), so it can run a different
-  version than the plugin installed by Herdr until you `git pull` the clone.
 - OpenSpec changes only; other SDD layouts are not supported.
 
 ## Development

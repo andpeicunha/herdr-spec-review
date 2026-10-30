@@ -16,8 +16,8 @@
 
 ## 4. Instalação e manutenção
 
-- [ ] 4.1 Trocar o plugin linkado localmente pela instalação do GitHub
-- [ ] 4.2 Achar um jeito de o servidor MCP acompanhar a versão instalada (o Herdr instala cada update em uma pasta nova)
+- [x] 4.1 Trocar o plugin linkado localmente pela instalação do GitHub
+- [x] 4.2 Achar um jeito de o servidor MCP acompanhar a versão instalada (o Herdr instala cada update em uma pasta nova)
 
 ## 5. Ajuda de atalhos
 

@@ -2,6 +2,7 @@
 
     python3 -m specreview.cli launch            # Herdr action: open the picker
     python3 -m specreview.cli open <artifact>   # open the reader on one artifact
+    python3 -m specreview.cli ensure-launcher   # Herdr startup hook: stable MCP path
 """
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ import sys
 
 from .discovery import change_for_artifact
 from .herdr_io import open_reader
+from .launcher import ensure_launcher
 
 
 def context_cwd() -> str:
@@ -35,9 +37,25 @@ def open_artifact(path: str, source_pane: str | None = None) -> tuple[bool, str]
     return ok, (f"Opened {path} in pane {result}" if ok else result)
 
 
+def refresh_launcher() -> str:
+    """Write the stable MCP launcher into the plugin config dir; "" when not in Herdr."""
+    config_dir = os.environ.get("HERDR_PLUGIN_CONFIG_DIR", "")
+    if not config_dir:
+        return ""
+    try:
+        return ensure_launcher(config_dir, os.environ.get("HERDR_PLUGIN_ROOT", ""))
+    except OSError:
+        return ""
+
+
 def main(argv: list[str]) -> int:
     command = argv[0] if argv else "launch"
+    if command == "ensure-launcher":
+        path = refresh_launcher()
+        print(path or "spec-review: no plugin config dir (invoke from inside Herdr)")
+        return 0 if path else 1
     if command == "launch":
+        refresh_launcher()
         source_pane = os.environ.get("HERDR_PANE_ID", "")
         if not source_pane:
             print("spec-review: no source pane (invoke from inside Herdr)", file=sys.stderr)
