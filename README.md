@@ -6,8 +6,8 @@ changes in a repository and all of its git worktrees, opens an artifact in a
 terminal reader, and lets you leave **AI Notes** that the agent turns into
 changes to the spec.
 
-> **Beta (`0.1.0-beta.6`).** It works end to end with Claude Code in Herdr, but the
-> behavior and the notes format may still change. See [Known limits](#known-limits-beta).
+> **Stable (`0.1.0`).** It works end to end with Claude Code in Herdr. See
+> [Known limits](#known-limits).
 
 ## Flow
 
@@ -122,7 +122,7 @@ Put settings in `config.env` in the plugin config directory
 | --- | --- | --- |
 | `SPEC_REVIEW_ROOTS` | unset | `:`-separated folders whose child repos appear under `r` |
 
-## Known limits (beta)
+## Known limits
 
 - **No "ready to archive" check yet.** `openspec archive` copies a leftover
   `# AI Notes` section into the main specs without a warning. Resolve or delete all
