@@ -40,6 +40,16 @@ class ReaderNoteTests(unittest.TestCase):
         self.assertEqual(self.file(), ORIGINAL)
         self.assertEqual(reader.touched_pending(), 0)
 
+    def test_pending_count_covers_every_note_in_the_file(self):
+        self.assertEqual(self.reader.pending_count(), 0)
+        self.reader.commit_note("First", None)
+        self.reader.cursor = 2
+        self.reader.commit_note("Second", None)
+        self.assertEqual(self.reader.pending_count(), 2)
+        # A fresh reader has touched nothing, but the notes are still pending.
+        fresh = Reader(App(""), self.path)
+        self.assertEqual((fresh.touched_pending(), fresh.pending_count()), (0, 2))
+
     def test_empty_new_note_writes_nothing(self):
         self.assertEqual(self.reader.commit_note("  ", None), "Empty comment; nothing saved")
         self.assertEqual(self.file(), ORIGINAL)

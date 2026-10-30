@@ -1,6 +1,6 @@
 id = "andpeicunha.spec-review"
 name = "spec-review"
-version = "0.1.0-beta.5"
+version = "0.1.0-beta.6"
 min_herdr_version = "0.9.5"
 platforms = ["macos", "linux"]
 description = "Beta: find open OpenSpec changes across worktrees, read SDD artifacts block by block, and leave AI Notes for the agent."

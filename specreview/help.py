@@ -44,7 +44,8 @@ READER_HELP: list[Section] = [
     (
         "Other",
         [
-            ("q Esc", "close (asks before sending new notes to the agent)"),
+            ("s", "send the pending notes to the agent (asks first), then close"),
+            ("q Esc", "close; pending notes stay in the file"),
             ("?", "show this list"),
         ],
     ),

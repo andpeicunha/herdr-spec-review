@@ -22,6 +22,7 @@
 ## 5. Ajuda de atalhos
 
 - [x] 5.1 Tecla `?` com janela de atalhos no leitor e nas listas, rodapé enxuto com `? help`
+- [x] 5.3 Enviar com `s` e fechar com `q` (sem confirmar ao fechar); ajustar os cenários de `agent-launch` e `agent-handoff` ao arquivar
 - [x] 5.2 Paginar com `Alt+↑`/`Alt+↓` (meia página) em vez de `Shift+↑`/`Shift+↓`
 
 ## 6. Código compartilhado

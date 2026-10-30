@@ -51,3 +51,19 @@ caiba em uma pane de 80 colunas.
 - **GIVEN** a pane tem 80 colunas
 - **WHEN** o leitor desenha o rodapé
 - **THEN** o rodapé inteiro aparece, incluindo `? help`
+
+### Requirement: Enviar e fechar em teclas separadas
+
+O leitor MUST enviar as notas pendentes ao agente com `s` (depois de pedir confirmação) e MUST fechar com `q` ou `Esc` sem enviar nada, como no comment composer. As notas pendentes MUST continuar no arquivo ao fechar.
+
+#### Scenario: Enviar com s
+
+- **GIVEN** o leitor tem 2 notas pendentes no arquivo
+- **WHEN** o usuário pressiona `s` e confirma
+- **THEN** o agente recebe a mensagem curta apontando para o arquivo e o leitor fecha
+
+#### Scenario: Fechar com q
+
+- **GIVEN** o leitor tem notas pendentes
+- **WHEN** o usuário pressiona `q`
+- **THEN** o leitor fecha sem perguntar e sem enviar, e as notas continuam no arquivo

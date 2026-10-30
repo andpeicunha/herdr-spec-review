@@ -6,7 +6,7 @@ changes in a repository and all of its git worktrees, opens an artifact in a
 terminal reader, and lets you leave **AI Notes** that the agent turns into
 changes to the spec.
 
-> **Beta (`0.1.0-beta.5`).** It works end to end with Claude Code in Herdr, but the
+> **Beta (`0.1.0-beta.6`).** It works end to end with Claude Code in Herdr, but the
 > behavior and the notes format may still change. See [Known limits](#known-limits-beta).
 
 ## Flow
@@ -18,8 +18,8 @@ changes to the spec.
    single table row, a line of code) to write a note. Press `C` to edit a saved
    note; erase its text and save to delete it.
    `Ctrl+S` saves the note **into the Markdown file**.
-4. Close with `q`. If you saved notes, confirm and the agent in your session
-   gets a short message pointing to the file.
+4. Press `s` to send: confirm and the agent in your session gets a short
+   message pointing to the file. `q` only closes; the notes stay in the file.
 5. The agent applies each note to the SDD structure and deletes it. When no
    note is pending, the `# AI Notes` section is removed: the final artifact is
    always clean.
@@ -96,7 +96,8 @@ Reader:
 | `Ctrl+U` | Clear the current line in the note box |
 | `R` | Reload after the file changed on disk |
 | `?` | Show all the shortcuts in a window (`Esc`, `?` or `q` closes it) |
-| `q` / `Esc` | Close (asks before sending new notes to the agent) |
+| `s` | Send the pending notes to the agent (asks first), then close |
+| `q` / `Esc` | Close; pending notes stay in the file |
 
 ## Zoom
 

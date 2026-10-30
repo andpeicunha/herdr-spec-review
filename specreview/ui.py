@@ -356,23 +356,26 @@ class App:
     # ── Reader ──────────────────────────────────────────────────────────
     def read(self, screen: curses.window, path: str) -> None:
         reader = Reader(self, path)
-        saved = reader.run(screen)
-        if saved:
-            self.handoff(screen, path, saved)
+        reader.run(screen)
+        pending = reader.pending_count()
+        if pending and not self.status.startswith("Sent"):
+            self.status = f"{pending} pending note(s) kept in the file · press s in the reader to send"
 
-    def handoff(self, screen: curses.window, path: str, saved: int) -> None:
+    def handoff(self, screen: curses.window, path: str, pending: int) -> bool:
+        """Ask, then message the agent about the pending notes; True when it was sent."""
         rel = os.path.relpath(path, repo_root(os.path.dirname(path)) or os.path.dirname(path))
-        lines = [f"Send {saved} new or edited note(s) to the agent? (y/n)", rel]
+        lines = [f"Send {pending} pending note(s) to the agent? (y/n)", rel]
         if not self.confirm(screen, "Send notes to the agent", lines):
             self.status = "Notes kept in the file; nothing sent"
-            return
+            return False
         message = build_handoff_message([path])
         ok, error = send_prompt(self.source_pane, message) if self.source_pane else (False, "no source pane")
         if ok:
             self.status = "Sent the notes to the agent"
-        else:
-            copy_text_to_clipboard(message)
-            self.status = f"Error: {error[:80]} · message copied to the clipboard"
+            return True
+        copy_text_to_clipboard(message)
+        self.status = f"Error: {error[:80]} · message copied to the clipboard"
+        return False
 
     def confirm(self, screen: curses.window, title: str, lines: list[str]) -> bool:
         height, width = screen.getmaxyx()
@@ -530,6 +533,13 @@ class Reader:
         except OSError:
             pass
 
+    def pending_count(self) -> int:
+        """Every note still pending in the file (the agent reads the whole file)."""
+        try:
+            return len(load_document(self.path).notes)
+        except OSError:
+            return len(self.doc.notes)
+
     def touched_pending(self) -> int:
         """Notes created or edited in this reading that are still pending in the file."""
         try:
@@ -611,7 +621,14 @@ class Reader:
                 continue
             count = len(self.doc.blocks)
             if key in (ord("q"), 27):
-                return self.touched_pending()
+                return 0
+            if key == ord("s"):
+                pending = self.pending_count()
+                if not pending:
+                    self.app.status = "No pending notes to send"
+                elif self.app.handoff(screen, self.path, pending):
+                    return 0
+                continue
             if key in (curses.KEY_UP, ord("k")):
                 self.cursor = max(0, self.cursor - 1)
             elif key in (curses.KEY_DOWN, ord("j")):
@@ -770,7 +787,7 @@ class Reader:
                 _safe_addnstr(screen, y, x, segment, room, attr | curses.A_BOLD if is_bold else attr)
                 x += len(segment)
 
-        footer = " ↑/↓ move · c note · C edit · +/- zoom · R reload · q close · ? help "
+        footer = " ↑/↓ move · c note · C edit · s send · q close · ? help "
         app.draw_footer(screen, inner_bottom, footer)
         if box_height:
             self.draw_comment_box(screen, viewer_height)
