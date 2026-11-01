@@ -160,7 +160,8 @@ class App:
         color_count = getattr(curses, "COLORS", 0)
         pairs = {
             "selected": (250, 235) if color_count >= 256 else (curses.COLOR_GREEN, -1),
-            "accent": (curses.COLOR_MAGENTA, -1),
+            "pane_border": (39, -1) if color_count >= 256 else (curses.COLOR_CYAN, -1),
+            "pane_title": (255, 24) if color_count >= 256 else (curses.COLOR_WHITE, curses.COLOR_BLUE),
             "badge": (curses.COLOR_BLACK, curses.COLOR_MAGENTA),
             "comment": (curses.COLOR_YELLOW, -1),
             "muted": (curses.COLOR_BLUE, -1),
@@ -189,18 +190,18 @@ class App:
         return self.colors.get(name, fallback)
 
     def border_attr(self) -> int:
-        return self.style("accent", curses.A_BOLD) | curses.A_BOLD
+        return self.style("pane_border", curses.A_BOLD) | curses.A_BOLD
 
     def draw_frame(self, screen: curses.window, title: str, subtitle: str) -> None:
         width = screen.getmaxyx()[1]
         _draw_heavy_box(screen, self.border_attr())
-        badge = " ✎ SPEC REVIEW "
-        _safe_addnstr(
-            screen, 0, 2, badge, width - 4, self.style("badge", curses.A_REVERSE) | curses.A_BOLD
-        )
-        _safe_addnstr(
-            screen, 0, 2 + len(badge), f" {title} ", width - len(badge) - 4, self.border_attr()
-        )
+        title_attr = self.style("pane_title", curses.A_REVERSE) | curses.A_BOLD
+        _safe_addnstr(screen, 0, 1, " " * (width - 2), width - 2, title_attr)
+        badge = f" ✎ SPEC REVIEW  {title} "
+        open_label = " PANE ABERTA "
+        _safe_addnstr(screen, 0, 2, badge, max(0, width - len(open_label) - 6), title_attr)
+        if width >= len(" ✎ SPEC REVIEW ") + len(open_label) + 6:
+            _safe_addnstr(screen, 0, width - len(open_label) - 2, open_label, len(open_label), title_attr)
         _safe_addnstr(screen, 1, 1, f" {subtitle} ", width - 2, self.style("muted"))
         _safe_addnstr(screen, 2, 1, "─" * (width - 2), width - 2, self.style("muted"))
 
