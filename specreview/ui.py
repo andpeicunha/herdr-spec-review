@@ -7,6 +7,8 @@ import os
 import termios
 import traceback
 
+from herdr_shared_ui import draw_heavy_frame, draw_title_bar, fill_row, initialize_colors
+
 from .ainotes import Note, add_note_to_file, delete_note_in_file, update_note_in_file
 from .discovery import (
     candidate_repos,
@@ -78,15 +80,7 @@ def _safe_addnstr(
 
 
 def _draw_heavy_box(window: curses.window, attr: int = 0) -> None:
-    height, width = window.getmaxyx()
-    if height < 2 or width < 2:
-        return
-    horizontal = "━" * (width - 2)
-    _safe_addnstr(window, 0, 0, f"┏{horizontal}┓", width, attr)
-    for y in range(1, height - 1):
-        _safe_addnstr(window, y, 0, "┃", 1, attr)
-        _safe_addnstr(window, y, width - 1, "┃", 1, attr)
-    _safe_addnstr(window, height - 1, 0, f"┗{horizontal}┛", width, attr)
+    draw_heavy_frame(window, attr)
 
 
 def _state_dir() -> str:
@@ -153,38 +147,9 @@ class App:
 
     # ── Shared drawing ──────────────────────────────────────────────────
     def setup_colors(self) -> None:
-        if not curses.has_colors():
-            return
-        curses.start_color()
-        curses.use_default_colors()
-        color_count = getattr(curses, "COLORS", 0)
-        pairs = {
-            "selected": (250, 235) if color_count >= 256 else (curses.COLOR_GREEN, -1),
-            "pane_border": (39, -1) if color_count >= 256 else (curses.COLOR_CYAN, -1),
-            "pane_title": (255, 24) if color_count >= 256 else (curses.COLOR_WHITE, curses.COLOR_BLUE),
-            "badge": (curses.COLOR_BLACK, curses.COLOR_MAGENTA),
-            "comment": (curses.COLOR_YELLOW, -1),
-            "muted": (curses.COLOR_BLUE, -1),
-            "footer": (curses.COLOR_WHITE, curses.COLOR_BLUE),
-            "success": (curses.COLOR_GREEN, -1),
-            "error": (curses.COLOR_RED, -1),
-            "heading": (curses.COLOR_CYAN, -1),
-            "code": (252, 236) if color_count >= 256 else (curses.COLOR_WHITE, curses.COLOR_BLACK),
-            "code_comment": (245, 236) if color_count >= 256 else (curses.COLOR_CYAN, curses.COLOR_BLACK),
-            "code_frame": (245, -1) if color_count >= 256 else (curses.COLOR_BLUE, -1),
-            "quote": (curses.COLOR_MAGENTA, -1),
-            "rule": (curses.COLOR_BLUE, -1),
-            "bullet": (curses.COLOR_WHITE, -1),
-            "table": (curses.COLOR_WHITE, -1),
-            "record": (curses.COLOR_WHITE, -1),
-            "marker": (curses.COLOR_GREEN, -1),
-        }
-        for number, (name, colors) in enumerate(pairs.items(), 1):
-            try:
-                curses.init_pair(number, *colors)
-                self.colors[name] = curses.color_pair(number)
-            except curses.error:
-                pass
+        self.colors = initialize_colors(
+            extra_pairs={"badge": (curses.COLOR_BLACK, curses.COLOR_MAGENTA)}
+        )
 
     def style(self, name: str, fallback: int = 0) -> int:
         return self.colors.get(name, fallback)
@@ -194,14 +159,11 @@ class App:
 
     def draw_frame(self, screen: curses.window, title: str, subtitle: str) -> None:
         width = screen.getmaxyx()[1]
-        _draw_heavy_box(screen, self.border_attr())
         title_attr = self.style("pane_title", curses.A_REVERSE) | curses.A_BOLD
-        _safe_addnstr(screen, 0, 1, " " * (width - 2), width - 2, title_attr)
-        badge = f" ✎ SPEC REVIEW  {title} "
-        open_label = " PANE ABERTA "
-        _safe_addnstr(screen, 0, 2, badge, max(0, width - len(open_label) - 6), title_attr)
-        if width >= len(" ✎ SPEC REVIEW ") + len(open_label) + 6:
-            _safe_addnstr(screen, 0, width - len(open_label) - 2, open_label, len(open_label), title_attr)
+        draw_heavy_frame(screen, self.border_attr())
+        left_title = f"✎ SPEC REVIEW  {title}"
+        right_label = "PANE ABERTA" if width >= len(left_title) + len("PANE ABERTA") + 10 else ""
+        draw_title_bar(screen, left_title, title_attr, right_label)
         _safe_addnstr(screen, 1, 1, f" {subtitle} ", width - 2, self.style("muted"))
         _safe_addnstr(screen, 2, 1, "─" * (width - 2), width - 2, self.style("muted"))
 
@@ -254,7 +216,16 @@ class App:
                 selected = index == cursor
                 attr = self.style("selected", curses.A_REVERSE) if selected else 0
                 marker = "▸ " if selected else "  "
-                _safe_addnstr(screen, y, 2, (marker + label).ljust(width - 4), width - 4, attr | (curses.A_BOLD if selected else 0))
+                if selected:
+                    fill_row(screen, y, 1, width - 2, attr)
+                _safe_addnstr(
+                    screen,
+                    y,
+                    2,
+                    (marker + label).ljust(width - 4),
+                    width - 4,
+                    attr | (curses.A_BOLD if selected else 0),
+                )
                 detail_x = min(width - 4, 4 + max(len(items[i][0]) for i in visible) + 2) if visible else width
                 if detail and detail_x < width - 6:
                     _safe_addnstr(screen, y, detail_x, detail, width - detail_x - 3, attr or self.style("muted"))
@@ -767,15 +738,21 @@ class Reader:
             markdown_kind = markdown[index][1]
             if index == self.cursor:
                 attr = app.style("selected", curses.A_REVERSE)
+                fill_row(screen, y, 1, inner_width, attr)
             else:
                 attr = app.style(markdown_kind, curses.A_BOLD if markdown_kind == "heading" else 0)
             prefix = "▸ " if index == self.cursor and kind == "line" else "  "
             # The marker sits next to the text; tables ignore the zoom margin.
             marker_x = 1 if markdown_kind in ("table", "record") else 1 + margin
-            _safe_addnstr(screen, y, marker_x, prefix, 2, app.style("marker"))
+            marker_attr = (
+                app.style("active_cursor", app.style("marker"))
+                if index == self.cursor and kind == "line"
+                else app.style("marker")
+            )
+            _safe_addnstr(screen, y, marker_x, prefix, 2, marker_attr)
             x = marker_x + 2
             if markdown_kind == "code":
-                if is_code_frame(text):
+                if is_code_frame(text) and index != self.cursor:
                     attr = app.style("code_frame", attr)
                 elif index != self.cursor:
                     self.draw_code_line(screen, y, x, text, inner_width)
