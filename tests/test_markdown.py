@@ -121,6 +121,22 @@ class MarkdownTests(unittest.TestCase):
         self.assertGreater(len(continuation), 1)
         self.assertTrue(all(t.startswith(" " * 6 + "palavra") for t in continuation))
 
+    def test_wrapped_numbered_item_inside_quote_indents_under_its_text(self):
+        markdown = format_markdown_lines(["> 2. " + "palavra " * 8])
+        rows = build_display_rows([markdown[0][0]], {}, width=24)
+        continuation = [text for kind, _index, text in rows if kind == "continuation"]
+
+        self.assertEqual(markdown[0], (("│ 2. " + "palavra " * 8).rstrip(), "quote"))
+        self.assertGreater(len(continuation), 1)
+        self.assertTrue(all(t.startswith(" " * len("│ 2. ") + "palavra") for t in continuation))
+
+    def test_wrapped_bullet_inside_quote_indents_under_its_text(self):
+        markdown = format_markdown_lines(["> - " + "palavra " * 8])
+        rows = build_display_rows([markdown[0][0]], {}, width=24)
+        continuation = [text for kind, _index, text in rows if kind == "continuation"]
+
+        self.assertTrue(all(t.startswith(" " * len("│ - ") + "palavra") for t in continuation))
+
     def test_wrapped_paragraphs_have_no_stray_leading_space(self):
         rows = build_display_rows(["uma frase que quebra em varias linhas curtas"], {}, width=12)
 

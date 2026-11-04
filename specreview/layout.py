@@ -6,7 +6,11 @@ import textwrap
 
 
 # Start of a wrapped list item or quote; wrapped rows are indented under its text.
-_HANGING_RE = re.compile(r"^\s*(?:[•◦│]|\d+[.)])\s+")
+# A quote may itself contain a list marker (for example, ``│ 2. item``), so include
+# both prefixes in the hanging indent instead of stopping after the quote marker.
+_HANGING_RE = re.compile(
+    r"^\s*(?:│\s+(?:(?:[-*+•◦]|\d+[.)])\s+)?|(?:[•◦]|\d+[.)])\s+)"
+)
 COMMENT_PREFIX = "  ╰─ comment: "
 
 
