@@ -36,6 +36,7 @@ READER_HELP: list[Section] = [
     (
         "View",
         [
+            ("m", "open the current Mermaid diagram in a larger preview"),
             ("t", "cycle and save the viewer theme"),
             ("+ -", "zoom in / out"),
             ("0", "reset the zoom"),

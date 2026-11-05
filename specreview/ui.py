@@ -9,6 +9,12 @@ import traceback
 
 from herdr_shared_ui import draw_heavy_frame, draw_title_bar, fill_row, initialize_colors
 from herdr_shared_ui.controls import Button, ButtonBar
+from herdr_shared_ui.mermaid import (
+    extract_mermaid_source,
+    prepare_mermaid_blocks,
+    remap_mermaid_comments,
+    show_mermaid_viewer,
+)
 
 from .ainotes import Note, add_note_to_file, delete_note_in_file, update_note_in_file
 from .discovery import (
@@ -494,6 +500,7 @@ class Reader:
         self.changed_on_disk = False
         self.display_rows: list[tuple[str, int, str]] = []
         self.visible_rows = 1
+        self.mermaid_cursor_targets = list(range(len(self.doc.blocks)))
         self.app.status = f"{len(self.doc.notes)} pending note(s)" if self.doc.notes else ""
 
     def reload(self) -> None:
@@ -618,7 +625,8 @@ class Reader:
                 page = max(1, self.visible_rows // 2)
                 if key in (ALT_UP, curses.KEY_PPAGE, ord("u")):
                     page = -page
-                self.cursor = page_target(self.display_rows, self.cursor, page)
+                visual_cursor = self.mermaid_cursor_targets[self.cursor]
+                self.cursor = page_target(self.display_rows, visual_cursor, page)
             elif key == ord("g"):
                 self.cursor = 0
             elif key == ord("G"):
@@ -641,6 +649,26 @@ class Reader:
                 self.set_zoom(0)
             elif key == ord("t"):
                 self.app.cycle_theme()
+            elif key == ord("m"):
+                source = extract_mermaid_source(
+                    [block.text for block in self.doc.blocks],
+                    [block.code for block in self.doc.blocks],
+                    self.cursor,
+                )
+                if source is None:
+                    self.app.status = "Current block is not inside a Mermaid diagram"
+                else:
+                    _height, width = screen.getmaxyx()
+                    show_mermaid_viewer(
+                        screen,
+                        source,
+                        width=max(1, width - 4),
+                        style={
+                            "border": self.app.style("pane_border"),
+                            "title": self.app.style("pane_title"),
+                            "muted": self.app.style("muted"),
+                        },
+                    )
             elif key == ord("R"):
                 self.reload()
                 self.app.status = "Reloaded"
@@ -685,7 +713,11 @@ class Reader:
         content_width, margin, spacer_policy = zoom_layout(self.app.zoom, full_width)
         texts = [block.text for block in self.doc.blocks]
         codes = [block.code for block in self.doc.blocks]
-        markdown = format_markdown_lines(texts, full_width, codes)
+        display_texts, display_codes, hidden, cursor_targets = prepare_mermaid_blocks(
+            texts, codes, full_width
+        )
+        self.mermaid_cursor_targets = cursor_targets
+        markdown = format_markdown_lines(display_texts, full_width, display_codes)
         comments: dict[int, str] = {}
         for note in self.doc.notes:
             index = self.doc.note_blocks.get(note.note_id)
@@ -693,10 +725,14 @@ class Reader:
             if index is None:
                 index, label = 0, f"{note.note_id} (text not found) · {note.human_comment}"
             comments[index] = (comments[index] + "\n" + label) if index in comments else label
+        comments = remap_mermaid_comments(comments, cursor_targets)
         compact_after = {
             i for i in range(len(markdown) - 1)
             if (markdown[i][1] == "bullet" and markdown[i + 1][1] == "bullet")
-            or continues_run(codes[i], codes[i + 1])
+            or continues_run(display_codes[i], display_codes[i + 1])
+            or display_codes[i].startswith("mermaid_")
+            and display_codes[i + 1].startswith("mermaid_")
+            and display_codes[i + 1] != "mermaid_tail"
         }
         if spacer_policy == "none":
             compact_after = set(range(len(markdown)))
@@ -707,8 +743,10 @@ class Reader:
             compact_after=compact_after, no_wrap={i for i, (_t, k) in enumerate(markdown) if k in ("table", "record")},
             no_wrap_width=full_width,
             preserve_space={i for i, (_t, k) in enumerate(markdown) if k == "code"},
+            hidden=hidden,
         )
-        selected_row = next(i for i, (kind, line, _) in enumerate(rows) if kind == "line" and line == self.cursor)
+        visual_cursor = self.mermaid_cursor_targets[self.cursor]
+        selected_row = next(i for i, (kind, line, _) in enumerate(rows) if kind == "line" and line == visual_cursor)
         available = content_rows_available(height, box_height)
         self.display_rows, self.visible_rows = rows, available
         top = max(0, min(selected_row - available // 2, max(0, len(rows) - available)))
@@ -746,12 +784,12 @@ class Reader:
                 )
                 continue
             markdown_kind = markdown[index][1]
-            if index == self.cursor:
+            if index == self.mermaid_cursor_targets[self.cursor]:
                 attr = app.style("selected", curses.A_REVERSE)
                 fill_row(screen, y, 1, inner_width, attr)
             else:
                 attr = app.style(markdown_kind, curses.A_BOLD if markdown_kind == "heading" else 0)
-            prefix = "▸ " if index == self.cursor and kind == "line" else "  "
+            prefix = "▸ " if index == self.mermaid_cursor_targets[self.cursor] and kind == "line" else "  "
             # The marker sits next to the text; tables ignore the zoom margin.
             marker_x = 1 if markdown_kind in ("table", "record") else 1 + margin
             marker_attr = (
@@ -762,9 +800,9 @@ class Reader:
             _safe_addnstr(screen, y, marker_x, prefix, 2, marker_attr)
             x = marker_x + 2
             if markdown_kind == "code":
-                if is_code_frame(text) and index != self.cursor:
+                if is_code_frame(text) and index != self.mermaid_cursor_targets[self.cursor]:
                     attr = app.style("code_frame", attr)
-                elif index != self.cursor:
+                elif index != self.mermaid_cursor_targets[self.cursor]:
                     self.draw_code_line(screen, y, x, text, inner_width)
                     continue
             segments, _bold = bold_segments(text, bold_at_row[top + y - 3])

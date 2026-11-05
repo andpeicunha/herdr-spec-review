@@ -17,6 +17,7 @@ def build_display_rows(
     no_wrap: set[int] | None = None,
     no_wrap_width: int | None = None,
     preserve_space: set[int] | None = None,
+    hidden: set[int] | None = None,
 ) -> list[tuple[str, int, str]]:
     """Wrap blocks into display rows.
 
@@ -28,6 +29,8 @@ def build_display_rows(
     rows: list[tuple[str, int, str]] = []
     cut_width = width if no_wrap_width is None else no_wrap_width
     for index, block in enumerate(lines):
+        if index in (hidden or set()):
+            continue
         first = True
         for physical_line in block.splitlines() or [""]:
             if width <= 0:

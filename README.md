@@ -154,9 +154,13 @@ The specs live in `openspec/specs/`. The design history of the MVP is in
 follow-ups are in `openspec/changes/spec-review-beta-followups/`.
 # Shared terminal UI
 
-`herdr_shared_ui/` is the canonical, standard-library-only curses package. Its
-public modules are `themes`, `controls`, `markdown`, and `layout`; `__init__`
-keeps the small drawing API used by the Spec Review pane. Theme IDs are
+`herdr_shared_ui/` is the canonical curses package. Its Python modules use the
+standard library; compatible Mermaid blocks render automatically using bundled
+`mermaid-ascii` binaries for macOS and Linux on ARM64 and x86_64. It needs no Node,
+Go, or runtime download. Press `m` to open the current diagram in a larger,
+scrollable preview. Unsupported syntax, unavailable renderers, and diagrams wider
+than the pane stay as source code. Public modules include `themes`, `controls`,
+`markdown`, `layout`, and `mermaid`; `__init__` keeps the drawing API. Theme IDs are
 `terminal`, `herdr-dark`, `midnight`, and `paper`. The viewer reads
 `SPEC_REVIEW_THEME` from the environment first, then the plugin's
 `$HERDR_PLUGIN_CONFIG_DIR/config.env`. It defaults to `herdr-dark`; set it to
