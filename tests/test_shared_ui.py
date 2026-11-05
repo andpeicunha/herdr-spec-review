@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from herdr_shared_ui import fill_row, initialize_colors
+from herdr_shared_ui.layout import wrap_physical_line
 
 
 class FakeCurses:
@@ -51,12 +52,33 @@ class FakeScreen:
 class SharedTerminalUiTests(unittest.TestCase):
     def test_bundled_source_matches_the_pinned_digest(self):
         package = Path(__file__).resolve().parents[1] / "herdr_shared_ui"
-        source = (package / "__init__.py").read_bytes()
+        digest = hashlib.sha256()
+        for path in sorted(p for p in package.rglob("*") if p.is_file() and p.name != "PIN" and "__pycache__" not in p.parts):
+            relative = path.relative_to(package).as_posix().encode()
+            data = path.read_bytes()
+            digest.update(len(relative).to_bytes(4, "big"))
+            digest.update(relative)
+            digest.update(len(data).to_bytes(8, "big"))
+            digest.update(data)
         pin = (package / "PIN").read_text(encoding="utf-8").split()
 
-        self.assertEqual(pin[0], "1.0.0")
-        self.assertEqual(pin[1], f"sha256:{hashlib.sha256(source).hexdigest()}")
+        self.assertEqual(pin[0], "1.1.1")
+        self.assertEqual(pin[1], f"sha256:{digest.hexdigest()}")
         self.assertEqual((package / "VERSION").read_text(encoding="utf-8").strip(), pin[0])
+
+    def test_all_named_themes_provide_semantic_roles(self):
+        from herdr_shared_ui.themes import THEME_IDS, initialize_colors
+        for theme in THEME_IDS:
+            styles = initialize_colors(FakeCurses(256), theme=theme)
+            self.assertTrue({"selected", "heading", "code", "error"}.issubset(styles))
+
+    def test_controls_cycle_focus_and_dispatch_plugin_actions(self):
+        from herdr_shared_ui.controls import Button, ButtonBar, Modal
+        bar = ButtonBar([Button("Keep", "keep"), Button("Discard", "discard")])
+        self.assertIsNone(bar.handle_key("\t"))
+        self.assertEqual(bar.handle_key("\n"), "discard")
+        modal = Modal([Button("Keep", "keep")], {"keep": lambda: "plugin-result"})
+        self.assertEqual(modal.handle_key("\n"), "plugin-result")
 
     def test_shared_palette_keeps_approved_256_color_roles(self):
         curses = FakeCurses(256)
@@ -84,6 +106,14 @@ class SharedTerminalUiTests(unittest.TestCase):
         fill_row(screen, 5, 2, 7, 19)
 
         self.assertEqual(screen.writes, [(5, 2, " " * 7, 7, 19)])
+
+    def test_quote_list_wrapping_indents_continuations_under_list_text(self):
+        for line in ("│ 2. " + "word " * 8, "│ - " + "word " * 8):
+            prefix = line.split("word", 1)[0]
+            wrapped = wrap_physical_line(line, 24)
+
+            self.assertGreater(len(wrapped), 1)
+            self.assertTrue(all(row.startswith(" " * len(prefix) + "word") for row in wrapped[1:]))
 
 
 if __name__ == "__main__":

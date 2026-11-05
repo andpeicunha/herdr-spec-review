@@ -36,6 +36,7 @@ READER_HELP: list[Section] = [
     (
         "View",
         [
+            ("t", "cycle and save the viewer theme"),
             ("+ -", "zoom in / out"),
             ("0", "reset the zoom"),
             ("R", "reload the file after it changed"),

@@ -152,3 +152,31 @@ SPEC_REVIEW_ARTIFACT=path/to/proposal.md SPEC_REVIEW_SOURCE_PANE=fake \
 The specs live in `openspec/specs/`. The design history of the MVP is in
 `openspec/changes/archive/2026-10-29-explore-sdd-review-plugin/`, and the open
 follow-ups are in `openspec/changes/spec-review-beta-followups/`.
+# Shared terminal UI
+
+`herdr_shared_ui/` is the canonical, standard-library-only curses package. Its
+public modules are `themes`, `controls`, `markdown`, and `layout`; `__init__`
+keeps the small drawing API used by the Spec Review pane. Theme IDs are
+`terminal`, `herdr-dark`, `midnight`, and `paper`. The viewer reads
+`SPEC_REVIEW_THEME` from the environment first, then the plugin's
+`$HERDR_PLUGIN_CONFIG_DIR/config.env`; unknown values use `terminal`. Press
+`t` in the reader to cycle and save the selection. Press `?` to see shortcuts.
+
+When changing the canonical package, update `VERSION` and `PIN`, then run:
+
+```sh
+python3 tools/check_shared_ui_bundle.py
+```
+
+To verify a consumer checkout after its independent vendor update, pass its
+bundle path, for example:
+
+```sh
+python3 tools/check_shared_ui_bundle.py /path/to/consumer/herdr_shared_ui
+```
+
+The real curses UI can be exercised in a virtual terminal with:
+
+```sh
+uv run --no-project --with pyte python3 -m unittest tests.test_ui_e2e -v
+```

@@ -8,6 +8,7 @@ import termios
 import traceback
 
 from herdr_shared_ui import draw_heavy_frame, draw_title_bar, fill_row, initialize_colors
+from herdr_shared_ui.controls import Button, ButtonBar
 
 from .ainotes import Note, add_note_to_file, delete_note_in_file, update_note_in_file
 from .discovery import (
@@ -47,7 +48,7 @@ from .markdown import (
     is_code_frame,
     split_code_comment,
 )
-from .settings import setting
+from .settings import next_theme, save_theme, selected_theme, setting
 
 # Open comment box: top divider, three text rows, and the frame's bottom edge.
 _COMMENT_BOX_HEIGHT = 5
@@ -144,12 +145,18 @@ class App:
         self.colors: dict[str, int] = {}
         self.status = ""
         self.zoom = load_zoom()
+        self.theme = selected_theme()
 
     # ── Shared drawing ──────────────────────────────────────────────────
     def setup_colors(self) -> None:
         self.colors = initialize_colors(
-            extra_pairs={"badge": (curses.COLOR_BLACK, curses.COLOR_MAGENTA)}
+            extra_pairs={"badge": (curses.COLOR_BLACK, curses.COLOR_MAGENTA)}, theme=self.theme
         )
+
+    def cycle_theme(self) -> None:
+        self.theme = next_theme(self.theme)
+        self.setup_colors()
+        self.status = f"Theme: {self.theme}" if save_theme(self.theme) else f"Theme: {self.theme} (not saved)"
 
     def style(self, name: str, fallback: int = 0) -> int:
         return self.colors.get(name, fallback)
@@ -357,6 +364,7 @@ class App:
             modal_height, modal_width, max(0, (height - modal_height) // 2), max(0, (width - modal_width) // 2)
         )
         modal.keypad(True)
+        buttons = ButtonBar((Button("Yes (y)", "yes"), Button("No (n/Esc)", "no")), focused=1)
         while True:
             modal.erase()
             _draw_heavy_box(modal, self.border_attr())
@@ -364,16 +372,16 @@ class App:
             for offset, line in enumerate(lines):
                 attr = 0 if offset == 0 else self.style("muted")
                 _safe_addnstr(modal, 2 + offset, 3, line, modal_width - 6, attr)
-            _safe_addnstr(
-                modal, modal_height - 2, 3, "[ y: yes ]    [ n / Esc: no ]", modal_width - 6,
-                self.style("comment", curses.A_BOLD),
-            )
+            buttons.draw(modal, modal_height - 2, 3, self.style("comment"), self.style("selected", curses.A_REVERSE) | curses.A_BOLD)
             modal.refresh()
             key = modal.get_wch()
             if key in ("y", "Y"):
                 return True
             if key in ("n", "N", "\x1b", "q"):
                 return False
+            action = buttons.handle_key(key)
+            if action:
+                return action == "yes"
 
     def choose_modal(self, screen: curses.window, title: str, items: list[str]) -> int | None:
         """Small numbered list: press 1-9 to choose an item, Esc to cancel."""
@@ -631,6 +639,8 @@ class Reader:
                 self.set_zoom(self.app.zoom - 1)
             elif key == ord("0"):
                 self.set_zoom(0)
+            elif key == ord("t"):
+                self.app.cycle_theme()
             elif key == ord("R"):
                 self.reload()
                 self.app.status = "Reloaded"

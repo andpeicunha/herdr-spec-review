@@ -1,16 +1,10 @@
 """Pure layout math: display rows, selection, paging, and the scrollbar."""
 from __future__ import annotations
 
-import re
 import textwrap
+from herdr_shared_ui.layout import wrap_physical_line
 
 
-# Start of a wrapped list item or quote; wrapped rows are indented under its text.
-# A quote may itself contain a list marker (for example, ``│ 2. item``), so include
-# both prefixes in the hanging indent instead of stopping after the quote marker.
-_HANGING_RE = re.compile(
-    r"^\s*(?:│\s+(?:(?:[-*+•◦]|\d+[.)])\s+)?|(?:[•◦]|\d+[.)])\s+)"
-)
 COMMENT_PREFIX = "  ╰─ comment: "
 
 
@@ -33,28 +27,18 @@ def build_display_rows(
     """
     rows: list[tuple[str, int, str]] = []
     cut_width = width if no_wrap_width is None else no_wrap_width
-    for index, line in enumerate(lines):
-        first_row = True
-        physical_lines = line.splitlines() or [""]
-        for physical_line in physical_lines:
+    for index, block in enumerate(lines):
+        first = True
+        for physical_line in block.splitlines() or [""]:
             if width <= 0:
                 wrapped = [physical_line]
             elif index in (no_wrap or set()):
                 wrapped = [physical_line[:cut_width]]
             else:
-                keep = index in (preserve_space or set())
-                hanging = None if keep else _HANGING_RE.match(physical_line)
-                wrapped = textwrap.wrap(
-                    physical_line,
-                    width=max(1, width),
-                    replace_whitespace=False,
-                    drop_whitespace=not keep,
-                    subsequent_indent=" " * min(len(hanging.group()), width // 2) if hanging else "",
-                )
-            for wrapped_line in wrapped or [""]:
-                kind = "line" if first_row else "continuation"
-                rows.append((kind, index, wrapped_line.rstrip()))
-                first_row = False
+                wrapped = wrap_physical_line(physical_line, width, preserve_space=index in (preserve_space or set()))
+            for wrapped_line in wrapped:
+                rows.append(("line" if first else "continuation", index, wrapped_line.rstrip()))
+                first = False
         if index in comments:
             comment_lines = comments[index].splitlines() or [""]
             comment_width = max(1, width - len(COMMENT_PREFIX))
