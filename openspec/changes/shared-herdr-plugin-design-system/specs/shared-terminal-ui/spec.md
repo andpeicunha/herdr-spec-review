@@ -4,6 +4,8 @@
 
 The design system MUST define named roles for pane border, pane title, selected row, active cursor, secondary text, comments, and errors. Its first version MUST preserve the current Comments blue selection and title and the approved cyan pane border. Both plugins MUST resolve each shared role through the same versioned rules for 256-color, basic-color, and monochrome terminals; a Herdr theme MUST NOT silently replace the approved palette.
 
+Both plugins MUST start with the curated `herdr-dark` theme when no theme is configured or the configured value is invalid. The `terminal` theme remains an explicit option for users who want the terminal's own colors.
+
 O sistema visual DEVE definir papéis nomeados para borda da pane, título, linha selecionada, cursor ativo, texto secundário, comentários e erros. Sua primeira versão DEVE preservar a seleção e o título azuis atuais do Comments e a borda ciano aprovada. Os dois plugins DEVEM resolver cada papel pelas mesmas regras versionadas em terminais de 256 cores, cores básicas e sem cores; um tema do Herdr NÃO DEVE substituir silenciosamente a paleta aprovada.
 
 #### Scenario: Same theme in both plugins / Mesmo tema nos dois plugins

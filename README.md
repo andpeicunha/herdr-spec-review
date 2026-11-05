@@ -159,8 +159,9 @@ public modules are `themes`, `controls`, `markdown`, and `layout`; `__init__`
 keeps the small drawing API used by the Spec Review pane. Theme IDs are
 `terminal`, `herdr-dark`, `midnight`, and `paper`. The viewer reads
 `SPEC_REVIEW_THEME` from the environment first, then the plugin's
-`$HERDR_PLUGIN_CONFIG_DIR/config.env`; unknown values use `terminal`. Press
-`t` in the reader to cycle and save the selection. Press `?` to see shortcuts.
+`$HERDR_PLUGIN_CONFIG_DIR/config.env`. It defaults to `herdr-dark`; set it to
+`terminal` to use terminal colors. Unknown values use `herdr-dark`. Press `t`
+in the reader to cycle and save the selection. Press `?` to see shortcuts.
 
 When changing the canonical package, update `VERSION` and `PIN`, then run:
 

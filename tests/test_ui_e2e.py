@@ -29,11 +29,16 @@ class SpecReviewTerminalE2ETests(unittest.TestCase):
             env.pop("SPEC_REVIEW_THEME", None)
             with CursesSession([sys.executable, str(root / "spec_review.py")], env) as ui:
                 self.assertIn("SPEC REVIEW", ui.text())
-                for theme in ("herdr-dark", "midnight", "paper"):
+                selected_row = next(
+                    row for row in ui.screen.buffer.values()
+                    if "Why" in "".join(cell.data for cell in row.values())
+                )
+                self.assertIn("005f87", {cell.bg for cell in selected_row.values()})
+                for theme in ("midnight", "paper", "terminal"):
                     ui.send("t")
                     self.assertIn(f"Theme: {theme}", ui.text())
                 saved = (Path(config) / "config.env").read_text(encoding="utf-8")
-                self.assertIn("SPEC_REVIEW_THEME=paper", saved)
+                self.assertIn("SPEC_REVIEW_THEME=terminal", saved)
                 ui.send("?")
                 ui.send("j" * 7)
                 self.assertIn("cycle and save the viewer theme", ui.text(), ui.text())

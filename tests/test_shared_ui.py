@@ -62,7 +62,7 @@ class SharedTerminalUiTests(unittest.TestCase):
             digest.update(data)
         pin = (package / "PIN").read_text(encoding="utf-8").split()
 
-        self.assertEqual(pin[0], "1.1.1")
+        self.assertEqual(pin[0], "1.1.2")
         self.assertEqual(pin[1], f"sha256:{digest.hexdigest()}")
         self.assertEqual((package / "VERSION").read_text(encoding="utf-8").strip(), pin[0])
 

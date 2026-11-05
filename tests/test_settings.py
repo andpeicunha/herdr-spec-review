@@ -10,12 +10,12 @@ from specreview.settings import next_theme, save_theme, selected_theme
 
 
 class ThemeSettingsTests(unittest.TestCase):
-    def test_default_and_invalid_themes_use_terminal(self):
+    def test_default_and_invalid_themes_use_herdr_dark(self):
         with patch.dict(os.environ, {}, clear=True), tempfile.TemporaryDirectory() as config:
             with patch.dict(os.environ, {"HERDR_PLUGIN_CONFIG_DIR": config}, clear=True):
-                self.assertEqual(selected_theme(), "terminal")
+                self.assertEqual(selected_theme(), "herdr-dark")
                 (Path(config) / "config.env").write_text("SPEC_REVIEW_THEME=unknown\n", encoding="utf-8")
-                self.assertEqual(selected_theme(), "terminal")
+                self.assertEqual(selected_theme(), "herdr-dark")
 
     def test_environment_setting_precedes_config(self):
         with tempfile.TemporaryDirectory() as config:

@@ -29,9 +29,9 @@ class ReaderThemeTests(unittest.TestCase):
                      patch.object(Reader, "draw"), \
                      patch("specreview.ui.read_key", side_effect=[ord("t"), ord("q")]):
                     reader.run(FakeScreen())
-                self.assertEqual(app.theme, "herdr-dark")
+                self.assertEqual(app.theme, "midnight")
                 with open(os.path.join(config, "config.env"), encoding="utf-8") as source:
-                    self.assertIn("SPEC_REVIEW_THEME=herdr-dark", source.read())
+                    self.assertIn("SPEC_REVIEW_THEME=midnight", source.read())
 
 
 if __name__ == "__main__":
