@@ -19,3 +19,13 @@ command = ["python3", "-m", "specreview.cli", "launch"]
 
 [[startup]]
 command = ["python3", "-m", "specreview.cli", "ensure-launcher"]
+
+# Zoom follows the tab's focused pane: bring the reader back when its tab/workspace
+# becomes active again. Deliberately NOT pane.focused (must not steal focus in a tab).
+[[events]]
+on = "tab.focused"
+command = ["python3", "-m", "specreview.refocus"]
+
+[[events]]
+on = "workspace.focused"
+command = ["python3", "-m", "specreview.refocus"]

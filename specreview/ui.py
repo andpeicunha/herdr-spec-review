@@ -29,6 +29,7 @@ from .discovery import (
 from .document import Document, load_document
 from .editor import TextBuffer, needs_discard_confirmation
 from .help import READER_HELP, Section, clamp_scroll, help_layout, picker_help
+from .refocus import install_redraw_handler, register_pane, unregister_pane
 from .keys import ALT_DOWN, ALT_UP, read_key
 from .herdr_io import build_handoff_message, copy_text_to_clipboard, pane_cwds, send_prompt
 from .layout import (
@@ -896,10 +897,14 @@ def main() -> None:
             termios.tcsetattr(0, termios.TCSANOW, attrs)
         except termios.error:
             original_termios = None
+    own_pane = os.environ.get("HERDR_PANE_ID", "")
+    install_redraw_handler()
+    register_pane(own_pane)
     try:
         curses.set_escdelay(25)
         curses.wrapper(App(source_pane, cwd, artifact).run)
     finally:
+        unregister_pane(own_pane)
         if original_termios is not None:
             try:
                 termios.tcsetattr(0, termios.TCSANOW, original_termios)
